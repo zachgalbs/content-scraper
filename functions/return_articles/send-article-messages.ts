@@ -1,39 +1,15 @@
 import { DefineFunction, Schema, SlackFunction } from "deno-slack-sdk/mod.ts";
+import { articlesSchema } from "../other/article-definition.ts";
 
 // 1. Define the function metadata, inputs, and outputs
 export const SendArticleMessagesFunction = DefineFunction({
   callback_id: "send_article_messages_function",
   title: "Send Article Messages",
   description: "Iterate over articles and send messages for each",
-  source_file: "functions/send-article-messages.ts",
+  source_file: "functions/return_articles/send-article-messages.ts",
   input_parameters: {
     properties: {
-      articles: {
-        type: Schema.types.array,
-        items: {
-          type: Schema.types.object,
-          properties: {
-            title: { type: Schema.types.string },
-            link: { type: Schema.types.string },
-            pubDate: { type: Schema.types.string },
-            creator: { type: Schema.types.string },
-            summary: { type: Schema.types.string },
-            source: { type: Schema.types.string },
-            score: { type: Schema.types.number },
-            explanation: { type: Schema.types.string },
-          },
-          required: [
-            "title",
-            "link",
-            "pubDate",
-            "creator",
-            "summary",
-            "source",
-            "score",
-            "explanation",
-          ],
-        },
-      },
+      articles: articlesSchema,
       channel_id: {
         type: Schema.types.string,
       },

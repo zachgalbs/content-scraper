@@ -1,70 +1,21 @@
-import { ArticleDatastore } from "../../datastores/article-datastore.ts";
+import { ArticleDatastore } from "../../datastores/article-object-definition.ts";
 import { DefineFunction, Schema, SlackFunction } from "deno-slack-sdk/mod.ts";
+import { articlesSchema } from "../other/article-definition.ts";
 
 export const FilterDatastoreArticlesFunction = DefineFunction({
-  callback_id: "filter_articles_function",
-  title: "Filter Articles",
+  callback_id: "datastore_filter_articles_function",
+  title: "Datastore Filter Articles",
   description: "Filters articles based on uniqueness and relevance score",
-  source_file: "functions/article.ts",
+  source_file: "functions/filter_articles/datastore-filter.ts",
   input_parameters: {
     properties: {
-      articles: {
-        type: Schema.types.array,
-        items: {
-          type: Schema.types.object,
-          properties: {
-            title: { type: Schema.types.string },
-            link: { type: Schema.types.string },
-            pubDate: { type: Schema.types.string },
-            creator: { type: Schema.types.string },
-            summary: { type: Schema.types.string },
-            source: { type: Schema.types.string },
-            score: { type: Schema.types.number },
-            explanation: { type: Schema.types.string },
-          },
-          required: [
-            "title",
-            "link",
-            "pubDate",
-            "creator",
-            "summary",
-            "source",
-            "score",
-            "explanation",
-          ],
-        },
-      },
+      articles: articlesSchema,
     },
     required: ["articles"],
   },
   output_parameters: {
     properties: {
-      articles: {
-        type: Schema.types.array,
-        items: {
-          type: Schema.types.object,
-          properties: {
-            title: { type: Schema.types.string },
-            link: { type: Schema.types.string },
-            pubDate: { type: Schema.types.string },
-            creator: { type: Schema.types.string },
-            summary: { type: Schema.types.string },
-            source: { type: Schema.types.string },
-            score: { type: Schema.types.number },
-            explanation: { type: Schema.types.string },
-          },
-          required: [
-            "title",
-            "link",
-            "pubDate",
-            "creator",
-            "summary",
-            "source",
-            "score",
-            "explanation",
-          ],
-        },
-      },
+      articles: articlesSchema,
     },
     required: ["articles"],
   },

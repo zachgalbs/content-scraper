@@ -1,40 +1,15 @@
 import { DefineFunction, Schema } from "deno-slack-sdk/mod.ts";
 import { ArticleDatastore } from "../../datastores/article-object-definition.ts";
 import { SlackFunction } from "deno-slack-sdk/mod.ts";
-
+import { articlesSchema } from "../other/article-definition.ts";
 export const StoreArticleFunction = DefineFunction({
   callback_id: "store_article_function",
   title: "Store Articles",
   description: "Stores a list of articles in the ArticleDatastore",
-  source_file: "functions/datastore.ts",
+  source_file: "functions/return_articles/store-articles.ts",
   input_parameters: {
     properties: {
-      articles: {
-        type: Schema.types.array,
-        items: {
-          type: Schema.types.object,
-          properties: {
-            title: { type: Schema.types.string },
-            link: { type: Schema.types.string },
-            pubDate: { type: Schema.types.string },
-            creator: { type: Schema.types.string },
-            summary: { type: Schema.types.string },
-            source: { type: Schema.types.string },
-            score: { type: Schema.types.number },
-            explanation: { type: Schema.types.string },
-          },
-          required: [
-            "title",
-            "link",
-            "pubDate",
-            "creator",
-            "summary",
-            "source",
-            "score",
-            "explanation",
-          ],
-        },
-      },
+      articles: articlesSchema,
     },
     required: ["articles"],
   },
