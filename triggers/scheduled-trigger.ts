@@ -16,11 +16,7 @@ const reminderScheduledTrigger: Trigger<typeof ReminderWorkflow.definition> = {
   },
   inputs: {
     channel_id: {
-      // You'll need to specify a specific channel ID here
       value: "C088CHM1FAA",
-    },
-    message: {
-      value: "This is a reminder message!",
     },
   },
 };

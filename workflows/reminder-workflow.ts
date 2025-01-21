@@ -9,9 +9,8 @@ export const ReminderWorkflow = DefineWorkflow({
   input_parameters: {
     properties: {
       channel_id: { type: Schema.slack.types.channel_id },
-      message: { type: Schema.types.string },
     },
-    required: ["channel_id", "message"],
+    required: ["channel_id"],
   },
 });
 

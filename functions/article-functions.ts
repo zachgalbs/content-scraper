@@ -1,4 +1,90 @@
 import { NEWS_SOURCES } from "../news-sources.ts";
+import { ArticleDatastore } from "../datastores/article-datastore.ts";
+
+function parseRSSFeed(xmlText: string, sourceName: string) {
+  // Basic XML parsing using string operations (you might want to use a proper XML parser)
+  const articles = [];
+  const items = xmlText.split("<item>");
+  console.log(items.length);
+
+  // Skip the first split as it's the header
+  for (let i = 1; i < items.length; i++) {
+    const item = items[i];
+
+    // Extract title, handling CDATA
+    const titleMatch = item.match(
+      /<title>(?:<!\[CDATA\[(.*?)\]\]>)?(.*?)<\/title>/,
+    );
+    const title = titleMatch ? (titleMatch[1] || titleMatch[2]) : "";
+
+    // Extract link, handling CDATA
+    const linkMatch = item.match(
+      /<link>(?:<!\[CDATA\[(.*?)\]\]>)?(.*?)<\/link>/,
+    );
+    const link = linkMatch ? (linkMatch[1] || linkMatch[2]) : "";
+
+    // Extract publication date
+    const dateMatch = item.match(/<pubDate>(.*?)<\/pubDate>/);
+    const pubDate = dateMatch ? dateMatch[1] : "";
+
+    // Extract author/creator, handling CDATA
+    const creatorMatch = item.match(
+      /<dc:creator>(?:<!\[CDATA\[(.*?)\]\]>)?(.*?)<\/dc:creator>/,
+    );
+    const creator = creatorMatch
+      ? (creatorMatch[1] || creatorMatch[2])
+      : "Unknown Author";
+
+    articles.push({
+      title: decodeXMLEntities(title),
+      link,
+      pubDate,
+      creator: decodeXMLEntities(creator),
+      summary: "", // Initialize summary as an empty string
+      source: sourceName, // Add the source name to the article
+    });
+  }
+
+  return articles;
+}
+
+export async function fetchLatestArticles() {
+  const allArticles = [];
+
+  for (const source of NEWS_SOURCES) {
+    try {
+      const response = await fetch(source.url);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const xmlText = await response.text();
+      const articles = parseRSSFeed(xmlText, source.name);
+
+      // Summarize each article
+      for (const article of articles) {
+        try {
+          article.summary = await summarizeText(
+            `${article.title} ${article.link}`,
+          );
+        } catch (summaryError) {
+          console.error("Error summarizing article:", summaryError);
+          article.summary = "Summary not available.";
+        }
+      }
+
+      allArticles.push(...articles); // Collect articles from source
+    } catch (error) {
+      console.error(`Error fetching from ${source.name}:`, error);
+    }
+  }
+
+  // Sort all articles by date and return the most recent ones
+  return allArticles
+    .sort((a, b) =>
+      new Date(b.pubDate).getTime() - new Date(a.pubDate).getTime()
+    );
+}
 
 export async function getArticleInfo() {
   try {
@@ -107,90 +193,6 @@ export async function scoreRelevance(
     console.error("Error in scoreRelevance:", error);
     throw error;
   }
-}
-
-export async function fetchLatestArticles() {
-  const allArticles = [];
-
-  for (const source of NEWS_SOURCES) {
-    try {
-      const response = await fetch(source.url);
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const xmlText = await response.text();
-      const articles = parseRSSFeed(xmlText, source.name);
-
-      // Summarize each article
-      for (const article of articles) {
-        try {
-          article.summary = await summarizeText(
-            `${article.title} ${article.link}`,
-          );
-        } catch (summaryError) {
-          console.error("Error summarizing article:", summaryError);
-          article.summary = "Summary not available.";
-        }
-      }
-
-      allArticles.push(...articles); // Collect articles from all sources
-    } catch (error) {
-      console.error(`Error fetching from ${source.name}:`, error);
-    }
-  }
-
-  // Sort all articles by date and return the most recent ones
-  return allArticles
-    .sort((a, b) =>
-      new Date(b.pubDate).getTime() - new Date(a.pubDate).getTime()
-    );
-}
-
-function parseRSSFeed(xmlText: string, sourceName: string) {
-  // Basic XML parsing using string operations (you might want to use a proper XML parser)
-  const articles = [];
-  const items = xmlText.split("<item>");
-
-  // Skip the first split as it's the header
-  for (let i = 1; i < items.length; i++) {
-    const item = items[i];
-
-    // Extract title, handling CDATA
-    const titleMatch = item.match(
-      /<title>(?:<!\[CDATA\[(.*?)\]\]>)?(.*?)<\/title>/,
-    );
-    const title = titleMatch ? (titleMatch[1] || titleMatch[2]) : "";
-
-    // Extract link, handling CDATA
-    const linkMatch = item.match(
-      /<link>(?:<!\[CDATA\[(.*?)\]\]>)?(.*?)<\/link>/,
-    );
-    const link = linkMatch ? (linkMatch[1] || linkMatch[2]) : "";
-
-    // Extract publication date
-    const dateMatch = item.match(/<pubDate>(.*?)<\/pubDate>/);
-    const pubDate = dateMatch ? dateMatch[1] : "";
-
-    // Extract author/creator, handling CDATA
-    const creatorMatch = item.match(
-      /<dc:creator>(?:<!\[CDATA\[(.*?)\]\]>)?(.*?)<\/dc:creator>/,
-    );
-    const creator = creatorMatch
-      ? (creatorMatch[1] || creatorMatch[2])
-      : "Unknown Author";
-
-    articles.push({
-      title: decodeXMLEntities(title),
-      link,
-      pubDate,
-      creator: decodeXMLEntities(creator),
-      summary: "", // Initialize summary as an empty string
-      source: sourceName, // Add the source name to the article
-    });
-  }
-
-  return articles.slice(0, 1); // Return only the most recent article
 }
 
 function decodeXMLEntities(text: string): string {

@@ -5,6 +5,9 @@ export const ArticleDatastore = DefineDatastore({
   primary_key: "id",
   attributes: {
     id: { type: Schema.types.string },
+    title: { type: Schema.types.string },
+    link: { type: Schema.types.string },
+    pubDate: { type: Schema.types.string },
   },
 });
 
