@@ -1,6 +1,6 @@
 import { Manifest } from "deno-slack-sdk/mod.ts";
 import { ReminderWorkflow } from "./workflows/reminder-workflow.ts";
-import { ArticleDatastore } from "./datastores/article-datastore.ts";
+import { ArticleDatastore } from "./datastores/article-object-definition.ts";
 /**
  * The app manifest contains the app's configuration. This
  * file defines attributes like app name and description.

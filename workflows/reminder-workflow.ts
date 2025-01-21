@@ -1,7 +1,10 @@
 import { DefineWorkflow, Schema } from "deno-slack-sdk/mod.ts";
-import { getArticleInfo } from "../functions/article-functions.ts";
-import { scoreRelevance } from "../functions/article-functions.ts";
-// Define the workflow
+import { StoreArticleFunction } from "../functions/return_articles/store-articles.ts";
+import { getLatestArticles } from "../functions/get_articles/get-recent-articles.ts";
+import { FilterDatastoreArticlesFunction } from "../functions/filter_articles/datastore-filter.ts";
+import { FilterRelevantArticlesFunction } from "../functions/filter_articles/filter-relevance.ts";
+import { SummarizeArticlesFunction } from "../functions/return_articles/summarize-articles.ts";
+import { SendArticleMessagesFunction } from "../functions/return_articles/send-article-messages.ts";
 export const ReminderWorkflow = DefineWorkflow({
   callback_id: "reminder-workflow",
   title: "Reminder Workflow",
@@ -14,16 +17,37 @@ export const ReminderWorkflow = DefineWorkflow({
   },
 });
 
-const articles = await getArticleInfo();
+// 1. Get the latest articles
+const articles = await getLatestArticles();
 
-// Add a step to the workflow for each article
-for (const article of articles) {
-  const { score, explanation } = await scoreRelevance(
-    `${article.title} ${article.summary}`,
-  ); // Get relevance score and explanation from AI
-  ReminderWorkflow.addStep(Schema.slack.functions.SendMessage, {
-    channel_id: ReminderWorkflow.inputs.channel_id,
-    message:
-      `*Source:* ${article.source}\n*Title:* ${article.title}\n*Author:* ${article.creator}\n*URL:* <${article.link}>\n*Summary:* ${article.summary}\n*Relevance Score:* ${score}\n*Explanation:* ${explanation}`,
-  });
-}
+// 2. Filter the articles to only include articles that are not already in the datastore
+const filteredArticles = ReminderWorkflow.addStep(
+  FilterDatastoreArticlesFunction,
+  {
+    articles: articles,
+  },
+);
+
+// 3. Filter the articles to only include articles that are relevant
+const relevantArticles = ReminderWorkflow.addStep(
+  FilterRelevantArticlesFunction,
+  {
+    articles: filteredArticles.outputs.articles,
+  },
+);
+
+// 4. Store the articles in the datastore
+ReminderWorkflow.addStep(StoreArticleFunction, {
+  articles: relevantArticles.outputs.articles,
+});
+
+// 5. Summarize the articles
+const summarizedArticles = ReminderWorkflow.addStep(SummarizeArticlesFunction, {
+  articles: relevantArticles.outputs.articles,
+});
+
+// 6. Send the articles to the channel
+ReminderWorkflow.addStep(SendArticleMessagesFunction, {
+  articles: summarizedArticles.outputs.articles,
+  channel_id: ReminderWorkflow.inputs.channel_id,
+});
