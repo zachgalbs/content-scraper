@@ -33,26 +33,35 @@ To build an evolving list of AI influencers, potential podcast guests, and trend
 
 ### Functions
 
-- **Parse RSS Feed:**
-  - Looks through Really Simple Syndication Feed provided by the website and gets each article or 'item' from the xml text
-  - Goes through each article and finds the title, link, date published, and the creator of the article.
-  - Returns every article available (around 20) with these variables
- 
-- **Fetch Latest Articles:**
-  - Goes through each source provided and retrieves the article(s) via the Parse RSS Feed function
-  - Gets articles from each source and generates a summary for each article
-  - Pushes articles from source to list of all articles with the source, title, summary etc.
-  - Finally, returns a sorted list of all the articles based on their publish date
+#### Article Functions:
 
-- **Get Article Info:**
-  - Gets the sorted list of latest articles, and returns a new list of article objects with the date published omitted
- 
-- **Summarize Text:**
-  - Given an article's text, prompts chatgpt 4o mini to summarize the text
+  - **Parse RSS Feed:**
+    - Looks through Really Simple Syndication Feed provided by the website and gets each article or 'item' from the xml text
+    - Goes through each article and finds the title, link, date published, and the creator of the article.
+    - Returns every article available (around 20) with these variables
+   
+  - **Fetch Latest Articles:**
+    - Goes through each source provided and retrieves the article(s) via the Parse RSS Feed function
+    - Gets articles from each source and generates a summary for each article
+    - Pushes articles from source to list of all articles with the source, title, summary etc.
+    - Finally, returns a sorted list of all the articles based on their publish date
+  
+  - **Get Article Info:**
+    - Gets the sorted list of latest articles, and returns a new list of article objects with the date published omitted
+   
+  - **Summarize Text:**
+    - Given an article's text, prompts chatgpt 4o mini to summarize the text
+  
+  - **Score Relevance**
+    - Rates the relevance of an article on a scale of 1-100 based on a subjective interpretation of how related the article is to AI stuff
+    - Also gives an explanation on why it gave the score it did (e.g. Low score because there was no mention of AI)
 
-- **Score Relevance**
-  - Rates the relevance of an article on a scale of 1-100 based on a subjective interpretation of how related the article is to AI stuff
-  - Also gives an explanation on why it gave the score it did (e.g. Low score because there was no mention of AI)
+#### Datastore Functions:
+ - **Store Article Function**
+   - First, sets the callback_id, name, etc.
+   - Second, defines the inputs as the article title, link, and date published
+   - Next, defines the outputs as a boolean 'success' parameter and a message (e.g. success: true, message: saved successfully at __)
+   - 
 
 ### Triggers
 
