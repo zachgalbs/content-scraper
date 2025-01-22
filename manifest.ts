@@ -1,6 +1,7 @@
 import { Manifest } from "deno-slack-sdk/mod.ts";
 import { ReminderWorkflow } from "./workflows/reminder-workflow.ts";
 import { ArticleDatastore } from "./datastores/article-object-definition.ts";
+import { ArticleType } from "./functions/other/article-type-definition.ts";
 /**
  * The app manifest contains the app's configuration. This
  * file defines attributes like app name and description.
@@ -10,9 +11,9 @@ export default Manifest({
   name: "content-scraper",
   description: "A blank template for building Slack apps with Deno",
   icon: "assets/default_new_app_icon.png",
-  functions: [],
   workflows: [ReminderWorkflow],
   outgoingDomains: [
+    "api.openai.com",
     "feed.infoq.com",
     "techcrunch.com",
     "dev.to",
@@ -27,4 +28,5 @@ export default Manifest({
     "datastore:write",
   ],
   datastores: [ArticleDatastore],
+  types: [ArticleType],
 });

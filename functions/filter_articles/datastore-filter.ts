@@ -1,6 +1,6 @@
 import { ArticleDatastore } from "../../datastores/article-object-definition.ts";
 import { DefineFunction, Schema, SlackFunction } from "deno-slack-sdk/mod.ts";
-import { articlesSchema } from "../other/article-definition.ts";
+import { ArticleType } from "../other/article-type-definition.ts";
 
 export const FilterDatastoreArticlesFunction = DefineFunction({
   callback_id: "datastore_filter_articles_function",
@@ -9,13 +9,23 @@ export const FilterDatastoreArticlesFunction = DefineFunction({
   source_file: "functions/filter_articles/datastore-filter.ts",
   input_parameters: {
     properties: {
-      articles: articlesSchema,
+      articles: {
+        type: Schema.types.array,
+        items: {
+          type: ArticleType,
+        },
+      },
     },
     required: ["articles"],
   },
   output_parameters: {
     properties: {
-      articles: articlesSchema,
+      articles: {
+        type: Schema.types.array,
+        items: {
+          type: ArticleType,
+        },
+      },
     },
     required: ["articles"],
   },
@@ -31,15 +41,18 @@ export default SlackFunction(
       // Check if the article title already exists in the datastore
       const existingArticle = await client.apps.datastore.get({
         datastore: ArticleDatastore.name,
-        id: { title: article.title },
+        id: `${article.title}-${article.pubDate}`,
       });
-
-      if (existingArticle.ok && existingArticle.item) {
+      // if the get request is successful and there are properties in the item, we have successfully located the article and we can skip it
+      if (existingArticle.ok && existingArticle.item.title) {
         console.log(`Article with title "${article.title}" already exists.`);
         continue; // Skip if the article already exists
       }
 
       // If the article does not exist in the datastore, add it to the filtered list
+      console.log(
+        `Adding article with title "${article.title}" to filtered list.`,
+      );
       filteredArticles.push(article);
     }
 

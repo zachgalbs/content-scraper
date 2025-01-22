@@ -1,5 +1,5 @@
 import { DefineFunction, Schema, SlackFunction } from "deno-slack-sdk/mod.ts";
-import { articlesSchema } from "../other/article-definition.ts";
+import { ArticleType } from "../other/article-type-definition.ts";
 
 // 1. Define the function metadata, inputs, and outputs
 export const SendArticleMessagesFunction = DefineFunction({
@@ -9,7 +9,12 @@ export const SendArticleMessagesFunction = DefineFunction({
   source_file: "functions/return_articles/send-article-messages.ts",
   input_parameters: {
     properties: {
-      articles: articlesSchema,
+      articles: {
+        type: Schema.types.array,
+        items: {
+          type: ArticleType,
+        },
+      },
       channel_id: {
         type: Schema.types.string,
       },
@@ -34,6 +39,16 @@ export default SlackFunction(
   SendArticleMessagesFunction,
   async ({ inputs, client }) => {
     const { articles, channel_id } = inputs;
+
+    // check if the articles array is empty (via checking if the first article has no title)
+    if (!articles[0]?.title) {
+      return {
+        outputs: {
+          success: false,
+          message: "No articles to send.",
+        },
+      };
+    }
 
     for (const article of articles) {
       // 🗞️ Construct your message text:

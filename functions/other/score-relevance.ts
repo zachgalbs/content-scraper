@@ -1,5 +1,5 @@
 export async function scoreRelevance(
-  text: string,
+  sourceUrl: string,
 ): Promise<{ score: number; explanation: string }> {
   const apiKey = Deno.env.get("OPENAI_API_KEY");
   if (!apiKey) {
@@ -20,7 +20,7 @@ export async function scoreRelevance(
           {
             role: "user",
             content:
-              `Rate the following article on a scale from 1 to 100 based on the relevance to AI, machine learning, and native development. Provide the score followed by a brief explanation, separated by a pipe character (|). Example format: "85|High relevance due to focus on ML algorithms": ${text}`,
+              `Rate the relevance of the following source on a scale from 1 to 100 based on its relevance to AI, machine learning, and native development. Provide the score followed by a brief explanation, separated by a pipe character (|). Example format: "85|High relevance due to focus on ML algorithms": ${sourceUrl}`,
           },
         ],
         max_tokens: 100, // Increased to accommodate explanation
@@ -37,9 +37,19 @@ export async function scoreRelevance(
     const [score, explanation] = data.choices[0].message.content.trim().split(
       "|",
     );
+
+    // Validate the score
+    const parsedScore = parseInt(score, 10);
+    if (isNaN(parsedScore) || parsedScore < 1 || parsedScore > 100) {
+      return {
+        score: 0,
+        explanation: "Invalid score received from the AI.",
+      };
+    }
+
     return {
-      score: parseInt(score, 10),
-      explanation: explanation || "No explanation provided",
+      score: parsedScore,
+      explanation: explanation?.trim() || "No explanation provided.",
     };
   } catch (error) {
     console.error("Error in scoreRelevance:", error);

@@ -1,6 +1,6 @@
 import { DefineFunction, Schema, SlackFunction } from "deno-slack-sdk/mod.ts";
 import summarizeText from "../other/summarize-text.ts";
-import { fetchFullText } from "../other/fetch-full-text.ts";
+import { ArticleType } from "../other/article-type-definition.ts";
 
 // Define the Slack Function
 export const SummarizeArticlesFunction = DefineFunction({
@@ -13,11 +13,7 @@ export const SummarizeArticlesFunction = DefineFunction({
       articles: {
         type: Schema.types.array,
         items: {
-          type: Schema.types.object,
-          properties: {
-            link: { type: Schema.types.string },
-          },
-          required: ["link"],
+          type: ArticleType,
         },
       },
     },
@@ -28,27 +24,7 @@ export const SummarizeArticlesFunction = DefineFunction({
       articles: {
         type: Schema.types.array,
         items: {
-          type: Schema.types.object,
-          properties: {
-            title: { type: Schema.types.string },
-            link: { type: Schema.types.string },
-            pubDate: { type: Schema.types.string },
-            creator: { type: Schema.types.string },
-            summary: { type: Schema.types.string },
-            source: { type: Schema.types.string },
-            score: { type: Schema.types.number },
-            explanation: { type: Schema.types.string },
-          },
-          required: [
-            "title",
-            "link",
-            "pubDate",
-            "creator",
-            "summary",
-            "source",
-            "score",
-            "explanation",
-          ],
+          type: ArticleType,
         },
       },
     },
@@ -61,13 +37,21 @@ export default SlackFunction(
   SummarizeArticlesFunction,
   async ({ inputs }) => {
     const { articles } = inputs;
+
+    if (!articles || articles.length === 0) {
+      return {
+        outputs: {
+          articles: [],
+        },
+      };
+    }
+
     const summarizedArticles = [];
 
     for (const article of articles) {
       try {
-        const fullText = await fetchFullText(article.link);
         // Summarize the article
-        article.summary = await summarizeText(fullText);
+        article.summary = await summarizeText(article.fullText);
       } catch (summaryError) {
         console.error("Error summarizing article:", summaryError);
         article.summary = "Summary not available.";

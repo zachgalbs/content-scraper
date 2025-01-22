@@ -1,7 +1,8 @@
 import { DefineFunction, Schema } from "deno-slack-sdk/mod.ts";
 import { ArticleDatastore } from "../../datastores/article-object-definition.ts";
 import { SlackFunction } from "deno-slack-sdk/mod.ts";
-import { articlesSchema } from "../other/article-definition.ts";
+import { ArticleType } from "../other/article-type-definition.ts";
+
 export const StoreArticleFunction = DefineFunction({
   callback_id: "store_article_function",
   title: "Store Articles",
@@ -9,7 +10,12 @@ export const StoreArticleFunction = DefineFunction({
   source_file: "functions/return_articles/store-articles.ts",
   input_parameters: {
     properties: {
-      articles: articlesSchema,
+      articles: {
+        type: Schema.types.array,
+        items: {
+          type: ArticleType,
+        },
+      },
     },
     required: ["articles"],
   },
@@ -25,13 +31,26 @@ export const StoreArticleFunction = DefineFunction({
 export default SlackFunction(
   StoreArticleFunction,
   async ({ inputs, client }) => {
-    for (const article of inputs.articles) {
+    const { articles } = inputs;
+
+    // check if the articles array is empty (via checking if the first article has no title)
+    if (!articles[0]?.title) {
+      return {
+        outputs: {
+          success: false,
+          message: "No articles to store.",
+        },
+      };
+    }
+
+    for (const article of articles) {
       // Attempt to store each article in the datastore
       const putResp = await client.apps.datastore.put<
         typeof ArticleDatastore.definition
       >({
         datastore: ArticleDatastore.name,
         item: {
+          id: `${article.title}-${article.pubDate}`,
           title: article.title,
           link: article.link,
           pubDate: article.pubDate,

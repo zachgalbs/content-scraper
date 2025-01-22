@@ -12,7 +12,7 @@ export default async function summarizeText(text: string): Promise<string> {
         "Authorization": `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: "gpt-4o-mini", // Updated model
+        model: "gpt-3.5-turbo", // Updated model
         messages: [
           { role: "system", content: "You are a helpful assistant." },
           {

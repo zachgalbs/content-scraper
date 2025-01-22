@@ -5,6 +5,8 @@ import { FilterDatastoreArticlesFunction } from "../functions/filter_articles/da
 import { FilterRelevantArticlesFunction } from "../functions/filter_articles/filter-relevance.ts";
 import { SummarizeArticlesFunction } from "../functions/return_articles/summarize-articles.ts";
 import { SendArticleMessagesFunction } from "../functions/return_articles/send-article-messages.ts";
+import { CheckArticlesFunction } from "../functions/return_articles/check-articles.ts";
+
 export const ReminderWorkflow = DefineWorkflow({
   callback_id: "reminder-workflow",
   title: "Reminder Workflow",
@@ -36,18 +38,30 @@ const relevantArticles = ReminderWorkflow.addStep(
   },
 );
 
+// const checkArticles = ReminderWorkflow.addStep(CheckArticlesFunction, {
+//   articles: relevantArticles.outputs.articles,
+// });
+
 // 4. Store the articles in the datastore
 ReminderWorkflow.addStep(StoreArticleFunction, {
   articles: relevantArticles.outputs.articles,
 });
 
 // 5. Summarize the articles
-const summarizedArticles = ReminderWorkflow.addStep(SummarizeArticlesFunction, {
-  articles: relevantArticles.outputs.articles,
-});
+const summarizedArticles = ReminderWorkflow.addStep(
+  SummarizeArticlesFunction,
+  {
+    articles: relevantArticles.outputs.articles,
+  },
+);
 
 // 6. Send the articles to the channel
 ReminderWorkflow.addStep(SendArticleMessagesFunction, {
   articles: summarizedArticles.outputs.articles,
   channel_id: ReminderWorkflow.inputs.channel_id,
 });
+
+// ReminderWorkflow.addStep(Schema.slack.functions.SendMessage, {
+//   channel_id: ReminderWorkflow.inputs.channel_id,
+//   message: checkArticles.outputs.message,
+// });

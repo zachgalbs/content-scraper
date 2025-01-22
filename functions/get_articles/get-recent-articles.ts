@@ -13,7 +13,7 @@ export async function getLatestArticles() {
       }
 
       const xmlText = await response.text();
-      const articles = parseRSSFeed(xmlText, source.name);
+      const articles = parseRSSFeed(xmlText, source.url);
 
       // Sort articles by date for the current source
       articles.sort((a, b) =>
@@ -21,7 +21,7 @@ export async function getLatestArticles() {
       );
 
       // Get the 3 latest articles from the current source
-      const latestArticles = articles.slice(0, 3);
+      const latestArticles = articles.slice(0, 1);
       allArticles.push(...latestArticles); // Collect the latest articles from source
     } catch (error) {
       console.error(`Error fetching from ${source.name}:`, error);
