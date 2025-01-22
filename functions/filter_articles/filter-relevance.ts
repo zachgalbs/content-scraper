@@ -51,15 +51,10 @@ export default SlackFunction(
       try {
         const { score, explanation } = await scoreRelevance(article.link);
 
-        console.log(
-          `Score for article "${article.title}" from "${article.link}": ${score}`,
-        );
-
         if (score > 50) {
           article.score = score;
           article.explanation = explanation;
           relevantArticles.push(article);
-          console.log("Article added to relevantArticles:", article.title);
         }
       } catch (error) {
         console.error("Error scoring article:", error);

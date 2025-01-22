@@ -1,8 +1,8 @@
 import { NEWS_SOURCES } from "../../news-sources.ts";
-import { parseRSSFeed } from "../other/parse-rss.ts";
+import { ParseRSSFeedFunction } from "../other/parse-rss.ts";
 
 // should return the 3 latest articles from each source
-export async function getLatestArticles() {
+export async function GetLatestArticlesFunction() {
   const allArticles = [];
 
   for (const source of NEWS_SOURCES) {
@@ -13,7 +13,7 @@ export async function getLatestArticles() {
       }
 
       const xmlText = await response.text();
-      const articles = parseRSSFeed(xmlText, source.url);
+      const articles = ParseRSSFeedFunction(xmlText, source.url);
 
       // Sort articles by date for the current source
       articles.sort((a, b) =>
@@ -21,7 +21,7 @@ export async function getLatestArticles() {
       );
 
       // Get the 3 latest articles from the current source
-      const latestArticles = articles.slice(0, 1);
+      const latestArticles = articles.slice(0, 3);
       allArticles.push(...latestArticles); // Collect the latest articles from source
     } catch (error) {
       console.error(`Error fetching from ${source.name}:`, error);

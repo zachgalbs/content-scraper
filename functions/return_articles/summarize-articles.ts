@@ -38,7 +38,8 @@ export default SlackFunction(
   async ({ inputs }) => {
     const { articles } = inputs;
 
-    if (!articles || articles.length === 0) {
+    // check if the articles array is empty (via checking if the first article has no title)
+    if (!articles[0]?.title) {
       return {
         outputs: {
           articles: [],
@@ -51,7 +52,7 @@ export default SlackFunction(
     for (const article of articles) {
       try {
         // Summarize the article
-        article.summary = await summarizeText(article.fullText);
+        article.summary = await summarizeText(article.link);
       } catch (summaryError) {
         console.error("Error summarizing article:", summaryError);
         article.summary = "Summary not available.";

@@ -1,4 +1,4 @@
-export function parseRSSFeed(xmlText: string, sourceName: string) {
+export function ParseRSSFeedFunction(xmlText: string, sourceName: string) {
   const articles = [];
   // Split on <item> tags to isolate article items
   const items = xmlText.split("<item>");
