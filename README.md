@@ -8,10 +8,11 @@ This project is a Slack app designed to fetch, summarize, and score the relevanc
 
 To build an evolving list of AI influencers, potential podcast guests, and trending topics by analyzing current AI trends.
 
-## Features (so far)
+## Features
 
 - Fetches and parses articles from multiple RSS feeds.
 - Filters articles based on relevance to AI native development.
+- Tags a topic to each article
 - Summarizes articles using OpenAI's API.
 - Sends relevent articles to a specified Slack channel.
 
@@ -43,14 +44,9 @@ To build an evolving list of AI influencers, potential podcast guests, and trend
   - **Fetch Latest Articles:**
     - Goes through each source provided and retrieves the articles via the Parse RSS Feed function
     - Sorts articles by date published, adds the three latest articles to a list
-    - Returns the list of all the articles
-   
-  - **Summarize Text:**
-    - Given an article's full text, prompts chatgpt 4o mini to summarize the text
   
   - **Score Relevance**
     - Rates the relevance of an article on a scale of 1-100 based on a subjective interpretation of how related the article is to AI stuff
-    - Also gives an explanation on why it gave the score it did (e.g. Low score because there was no mention of AI)
 
 #### Filtering Articles:
 
