@@ -1,5 +1,5 @@
 import { DefineFunction, SlackFunction } from "deno-slack-sdk/mod.ts";
-import { scoreRelevance } from "../other/score-relevance.ts";
+import { scoreRelevance } from "./score-relevance.ts";
 import { ArticleType } from "../other/article-type-definition.ts";
 import { Schema } from "deno-slack-sdk/mod.ts";
 
@@ -49,12 +49,15 @@ export default SlackFunction(
 
     for (const article of articles) {
       try {
-        const { score, explanation } = await scoreRelevance(article.link);
+        const { score, explanation } = await scoreRelevance(article.fullText);
 
-        if (score > 50) {
+        if (score > 70) {
           article.score = score;
           article.explanation = explanation;
           relevantArticles.push(article);
+          console.log(
+            `Article with title "${article.title}" is relevant`,
+          );
         }
       } catch (error) {
         console.error("Error scoring article:", error);

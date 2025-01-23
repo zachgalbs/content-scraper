@@ -1,5 +1,5 @@
 export async function scoreRelevance(
-  sourceUrl: string,
+  fullText: string,
 ): Promise<{ score: number; explanation: string }> {
   const apiKey = Deno.env.get("OPENAI_API_KEY");
   if (!apiKey) {
@@ -14,13 +14,13 @@ export async function scoreRelevance(
         "Authorization": `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: "gpt-3.5-turbo",
+        model: "gpt-4o-mini",
         messages: [
           { role: "system", content: "You are a helpful assistant." },
           {
             role: "user",
             content:
-              `Rate the relevance of the following source on a scale from 1 to 100 based on its relevance to AI, machine learning, and native development. Provide the score followed by a brief explanation, separated by a pipe character (|). Example format: "85|High relevance due to focus on ML algorithms": ${sourceUrl}`,
+              `Rate the relevance of the following text on a scale from 1 to 100 based on its relevance to AI, machine learning, and native development. Provide the score followed by a brief explanation, separated by a pipe character (|). Example format: "85|High relevance due to focus on ML algorithms": ${fullText}`,
           },
         ],
         max_tokens: 100, // Increased to accommodate explanation
@@ -40,7 +40,7 @@ export async function scoreRelevance(
 
     // Validate the score
     const parsedScore = parseInt(score, 10);
-    if (isNaN(parsedScore) || parsedScore < 1 || parsedScore > 100) {
+    if (isNaN(parsedScore) || parsedScore < 0 || parsedScore > 100) {
       return {
         score: 0,
         explanation: "Invalid score received from the AI.",

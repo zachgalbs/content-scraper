@@ -1,4 +1,4 @@
-export default async function summarizeText(url: string): Promise<string> {
+export default async function summarizeText(fullText: string): Promise<string> {
   const apiKey = Deno.env.get("OPENAI_API_KEY");
   if (!apiKey) {
     throw new Error("OpenAI API key is not set in environment variables.");
@@ -12,13 +12,13 @@ export default async function summarizeText(url: string): Promise<string> {
         "Authorization": `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: "gpt-3.5-turbo", // Updated model
+        model: "gpt-4o-mini", // Updated model
         messages: [
           { role: "system", content: "You are a helpful assistant." },
           {
             role: "user",
             content:
-              `Please go over the following article and summarize it. Please keep the response to a maximum of 30 words: ${url}`,
+              `Please summarize the following article text in a maximum of 30 words. Please focus on the relationship the article has to AI, and AI Native Development: ${fullText}`,
           },
         ],
         max_tokens: 50,

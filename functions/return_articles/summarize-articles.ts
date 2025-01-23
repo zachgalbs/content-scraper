@@ -1,5 +1,5 @@
 import { DefineFunction, Schema, SlackFunction } from "deno-slack-sdk/mod.ts";
-import summarizeText from "../other/summarize-text.ts";
+import summarizeText from "./summarize-text.ts";
 import { ArticleType } from "../other/article-type-definition.ts";
 
 // Define the Slack Function
@@ -52,7 +52,7 @@ export default SlackFunction(
     for (const article of articles) {
       try {
         // Summarize the article
-        article.summary = await summarizeText(article.link);
+        article.summary = await summarizeText(article.fullText);
       } catch (summaryError) {
         console.error("Error summarizing article:", summaryError);
         article.summary = "Summary not available.";

@@ -1,6 +1,6 @@
 import { Manifest } from "deno-slack-sdk/mod.ts";
 import { ReminderWorkflow } from "./workflows/reminder-workflow.ts";
-import { ArticleDatastore } from "./datastores/article-object-definition.ts";
+import { ArticleDatastore } from "./datastores/datastore-definition.ts";
 import { StoreArticleFunction } from "./functions/return_articles/store-articles.ts";
 import { SendArticleMessagesFunction } from "./functions/return_articles/send-article-messages.ts";
 import { FilterDatastoreArticlesFunction } from "./functions/filter_articles/datastore-filter.ts";

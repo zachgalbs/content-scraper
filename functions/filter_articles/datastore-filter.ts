@@ -1,4 +1,4 @@
-import { ArticleDatastore } from "../../datastores/article-object-definition.ts";
+import { ArticleDatastore } from "../../datastores/datastore-definition.ts";
 import { DefineFunction, Schema, SlackFunction } from "deno-slack-sdk/mod.ts";
 import { ArticleType } from "../other/article-type-definition.ts";
 
