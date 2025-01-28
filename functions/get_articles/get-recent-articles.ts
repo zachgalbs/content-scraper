@@ -2,6 +2,7 @@ import { DefineFunction, Schema, SlackFunction } from "deno-slack-sdk/mod.ts";
 import { ArticleType } from "../other/article-type-definition.ts";
 import { ParseRSSFeedFunction } from "./parse-rss.ts";
 import { NEWS_SOURCES } from "../../news-sources.ts";
+import { fetchWithTimeout } from "./parse-rss.ts";
 
 export const GetLatestArticlesFunction = DefineFunction({
   callback_id: "get_latest_articles_function",
@@ -28,47 +29,82 @@ export const GetLatestArticlesFunction = DefineFunction({
 export default SlackFunction(
   GetLatestArticlesFunction,
   async () => {
-    const allArticles = [];
+    const allStart = performance.now();
+    console.log("[INFO] Starting parallel fetch of RSS sources...");
 
-    for (const source of NEWS_SOURCES) {
+    // 1. Fetch all RSS feeds in parallel with Promise.all
+    //    This creates an array of Promises, one for each source.
+    const fetchPromises = NEWS_SOURCES.map(async (source) => {
+      const sourceStart = performance.now();
+      console.log(`[INFO] [${source.name}] Start fetching...`);
+
       try {
-        const response = await fetch(source.url);
+        // -- Timed fetch for the RSS feed
+        const response = await fetchWithTimeout(source.url, 8_000); // 8s per feed
         if (!response.ok) {
           console.error(
-            `HTTP error fetching ${source.name}: ${response.status}`,
+            `[ERROR] [${source.name}] HTTP status: ${response.status}`,
           );
-          continue; // Skip this source if there's an error
+          return [];
         }
 
-        const xmlText = await response.text();
-        // FIX #1: ParseRSSFeedFunction is async, so we must await it
-        const articles = await ParseRSSFeedFunction(xmlText, source.url);
+        const fetchEnd = performance.now();
+        console.log(
+          `[INFO] [${source.name}] Fetched in ${
+            (fetchEnd - sourceStart).toFixed(2)
+          } ms. Parsing feed...`,
+        );
 
-        // Sort articles by date for the current source
+        // -- Get the XML text
+        const xmlText = await response.text();
+
+        // -- Parse the feed to extract articles (which may also fetch article HTML in parallel)
+        const parseStart = performance.now();
+        const articles = await ParseRSSFeedFunction(xmlText, source.url);
+        const parseEnd = performance.now();
+        console.log(
+          `[INFO] [${source.name}] Parsed feed in ${
+            (parseEnd - parseStart).toFixed(2)
+          } ms (${articles.length} articles found).`,
+        );
+
+        // Sort articles by date
         articles.sort((a, b) => {
+          if (a === null || b === null) return 0; // treat null as equal
           const dateA = new Date(a.pubDate).getTime();
           const dateB = new Date(b.pubDate).getTime();
-
-          if (isNaN(dateA) || isNaN(dateB)) {
-            console.error(
-              `Invalid date encountered: ${a.pubDate} or ${b.pubDate}`,
-            );
-            return 0; // Treat invalid dates as equal
-          }
-
-          // Descending order: newer articles first
-          return dateB - dateA;
+          if (isNaN(dateA) || isNaN(dateB)) return 0; // treat invalid as equal
+          return dateB - dateA; // descending
         });
 
-        // Fetch HTML for the first 3 articles
-        const latestArticles = articles.slice(0, 3);
-        allArticles.push(...latestArticles);
-      } catch (error) {
-        console.error(`Error fetching articles from ${source.name}:`, error);
-      }
-    }
+        // Return only the first 3 from each source
+        const topArticles = articles.slice(0, 3);
 
-    // Return articles in Slack Function's outputs format
+        console.log(
+          `[INFO] [${source.name}] Completed. Returning ${topArticles.length} articles.`,
+        );
+        return topArticles;
+      } catch (error) {
+        console.error(`[ERROR] [${source.name}]`, error);
+        return [];
+      }
+    });
+
+    // Wait for all fetch/parse operations to finish
+    const results = await Promise.all(fetchPromises);
+
+    // Flatten the arrays from each source and filter out null values
+    const allArticles = results.flat().filter((
+      article,
+    ): article is NonNullable<typeof article> => article !== null);
+    const allEnd = performance.now();
+    console.log(
+      `[INFO] All sources fetched and parsed in ${
+        (allEnd - allStart).toFixed(2)
+      } ms. Total articles: ${allArticles.length}.`,
+    );
+
+    // Return the combined articles
     return {
       outputs: {
         articles: allArticles,

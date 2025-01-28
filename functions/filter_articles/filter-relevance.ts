@@ -1,4 +1,7 @@
+// filter-relevance.ts
+
 import { DefineFunction, SlackFunction } from "deno-slack-sdk/mod.ts";
+import pLimit from "npm:p-limit"; // concurrency limiter
 import { scoreRelevance } from "./score-relevance.ts";
 import { ArticleType } from "../other/article-type-definition.ts";
 import { Schema } from "deno-slack-sdk/mod.ts";
@@ -36,10 +39,11 @@ export default SlackFunction(
   FilterRelevantArticlesFunction,
   async ({ inputs }) => {
     const { articles } = inputs;
-    const relevantArticles = [];
+    const startTime = performance.now();
 
-    // check if the articles array is empty (via checking if the first article has no title)
-    if (!articles[0]?.title) {
+    // check if articles array is empty or invalid
+    if (!articles || articles.length === 0 || !articles[0]?.title) {
+      console.log("[FilterRelevantArticles] No valid articles to process.");
       return {
         outputs: {
           articles: [],
@@ -47,24 +51,62 @@ export default SlackFunction(
       };
     }
 
-    for (const article of articles) {
-      try {
-        const { score, explanation } = await scoreRelevance(article.fullText);
+    console.log(
+      `[FilterRelevantArticles] Received ${articles.length} articles.`,
+    );
 
-        if (score > 50) {
-          article.score = score;
-          article.explanation = explanation;
-          relevantArticles.push(article);
+    // Option 1: Let each scoreRelevance handle concurrency
+    // Option 2: We add concurrency limiting here too, to limit total concurrency
+    const limit = pLimit(5); // Up to 5 articles at once
+
+    // Build an array of Promises for scoring articles
+    const scoringPromises = articles.map((article, idx) =>
+      limit(async () => {
+        const articleStart = performance.now();
+
+        // Attempt to score the article
+        try {
+          const { score, explanation } = await scoreRelevance(article.fullText);
+          const articleEnd = performance.now();
+
           console.log(
-            `Article with title "${article.title}" is relevant`,
+            `[FilterRelevantArticles] Article #${
+              idx + 1
+            } "${article.title}" scored in ${
+              (articleEnd - articleStart).toFixed(2)
+            } ms. Score = ${score}`,
           );
+
+          if (score > 50) {
+            article.score = score;
+            article.explanation = explanation;
+            return article; // relevant
+          }
+          // Not relevant
+          return null;
+        } catch (error) {
+          console.log("Article text length:", article.fullText.length);
+          console.error(
+            `[FilterRelevantArticles] Error scoring article #${idx + 1}:`,
+            error,
+          );
+          return null; // skip or handle differently
         }
-      } catch (error) {
-        console.log("Article text:", article.fullText);
-        console.log("Article length:", article.fullText.length);
-        console.error("Error scoring article:", error);
-      }
-    }
+      })
+    );
+
+    // Wait for all scoring operations to finish
+    const scoredResults = await Promise.all(scoringPromises);
+
+    // Filter out any nulls (articles under score threshold or error'd out)
+    const relevantArticles = scoredResults.filter(Boolean) as typeof articles;
+
+    const endTime = performance.now();
+    console.log(
+      `[FilterRelevantArticles] Completed filtering in ${
+        (endTime - startTime).toFixed(2)
+      } ms. Found ${relevantArticles.length} relevant articles.`,
+    );
 
     return {
       outputs: {

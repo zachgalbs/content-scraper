@@ -1,21 +1,7 @@
 import { XMLParser } from "npm:fast-xml-parser";
 import { DOMParser } from "https://deno.land/x/deno_dom@v0.1.49/deno-dom-wasm.ts";
 import { Readability } from "npm:@mozilla/readability";
-
-// 1. Utility function to fetch the full HTML of an article using the link
-async function fetchArticleHtml(url: string): Promise<string> {
-  try {
-    const response = await fetch(url);
-    if (!response.ok) {
-      console.error(`Failed to fetch article HTML. Status: ${response.status}`);
-      return "";
-    }
-    return await response.text();
-  } catch (error) {
-    console.error(`Error fetching HTML from ${url}:`, error);
-    return "";
-  }
-}
+import pLimit from "npm:p-limit";
 
 // 2. Updated function using Deno's DOMParser
 function parseArticleWithReadability(htmlContent: string): string {
@@ -61,63 +47,66 @@ export function decodeXMLEntities(text: string): string {
     .replace(/&#8230;/g, "..."); // ellipsis
 }
 
+const limit = pLimit(3);
 // 4. The revised RSS parsing function (async) using Readability where necessary
-export async function ParseRSSFeedFunction(
-  xmlText: string,
-  sourceName: string,
-) {
+export async function ParseRSSFeedFunction(xmlText: string, sourceUrl: string) {
   const articles = [];
   const parser = new XMLParser();
   const jObj = parser.parse(xmlText);
   const items = extractFeedItems(jObj);
 
-  for (const item of items) {
-    // Access parsed XML properties directly
-    const title = item.title || "";
-    const link = typeof item.link === "string"
-      ? item.link
-      : item.link?.["@_href"] || "";
-    const pubDate = item.pubDate || item.published || "";
-    const creator = item["dc:creator"] || item.author?.name || "Unknown Author";
-
-    // Domain check to decide whether to fetch the full article HTML
-    const sourceRootDomain = getRootDomain(sourceName);
-    const linkRootDomain = getRootDomain(link);
-
-    let articleText = "";
-    if (sourceRootDomain === linkRootDomain) {
+  // Build a list of promises to fetch article HTML in parallel, but with concurrency = 3
+  const itemPromises = items.map((item) =>
+    limit(async () => {
       try {
-        const articleHTML = await fetchArticleHtml(link.trim());
-        if (articleHTML) {
-          // Extract the main text content from the full HTML using Readability
-          articleText = parseArticleWithReadability(articleHTML);
+        // Extract fields
+        const title = item.title || "";
+        const link = typeof item.link === "string"
+          ? item.link
+          : item.link?.["@_href"] || "";
+        const pubDate = item.pubDate || item.published || "";
+        const creator = item["dc:creator"] || item.author?.name ||
+          "Unknown Author";
+
+        // If domain doesn’t match, skip
+        const sourceRootDomain = getRootDomain(sourceUrl);
+        const linkRootDomain = getRootDomain(link);
+        if (sourceRootDomain !== linkRootDomain) {
+          console.log(`Skipping link: ${link} (domain mismatch)`);
+          return null; // skip
         }
+
+        // Fetch the article HTML with a timeout
+        const articleHTML = await fetchWithTimeout(link.trim(), 8_000);
+        let articleText = "";
+        if (articleHTML.ok) {
+          const text = await articleHTML.text();
+          articleText = parseArticleWithReadability(text);
+        }
+
+        return {
+          title: decodeXMLEntities(title.trim()),
+          source: sourceUrl,
+          link: link.trim(),
+          pubDate,
+          creator: decodeXMLEntities(creator.trim()),
+          fullText: decodeXMLEntities(articleText),
+          summary: "",
+          score: 0,
+          explanation: "",
+        };
       } catch (error) {
-        console.error(`Error fetching HTML from ${link}:`, error);
+        console.error(`Error fetching/processing item:`, error);
+        return null;
       }
-    } else {
-      console.log(
-        `Skipping link: ${link} (does not match source: ${sourceRootDomain})`,
-      );
-      // end interation of loop
-      break;
-    }
+    })
+  );
 
-    // Store the article data
-    articles.push({
-      title: decodeXMLEntities(title.trim()),
-      source: sourceName,
-      link: link.trim(),
-      pubDate,
-      creator: decodeXMLEntities(creator.trim()),
-      fullText: decodeXMLEntities(articleText),
-      summary: "",
-      score: 0,
-      explanation: "",
-    });
-  }
+  // Wait for all items to be processed
+  const fetchedArticles = await Promise.all(itemPromises);
 
-  return articles;
+  // Filter out any null results
+  return fetchedArticles.filter(Boolean);
 }
 
 // Helper function to get the root domain of a URL
@@ -172,4 +161,26 @@ function extractFeedItems(parsedData: RssFeed | AtomFeed): FeedItem[] {
     : items
     ? [items as FeedItem]
     : [];
+}
+
+/**
+ * A helper to wrap `fetch` with a timeout using `AbortController`.
+ */
+export async function fetchWithTimeout(
+  url: string,
+  timeoutMs = 10_000, // 10s timeout, adjust as needed
+): Promise<Response> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    // Start logging
+    console.log(
+      `[INFO] [fetchWithTimeout] Fetching: ${url}, timeout: ${timeoutMs}ms`,
+    );
+    const response = await fetch(url, { signal: controller.signal });
+    return response;
+  } finally {
+    clearTimeout(timeoutId);
+  }
 }
