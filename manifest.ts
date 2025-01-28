@@ -29,7 +29,7 @@ export default Manifest({
     "techcrunch.com",
     "dev.to",
     "news.ycombinator.com",
-    "ycombinator.com",
+    "www.ycombinator.com",
     "mlops.substack.com",
     "future.forem.com",
   ],

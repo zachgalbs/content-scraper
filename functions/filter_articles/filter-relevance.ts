@@ -1,5 +1,3 @@
-// filter-relevance.ts
-
 import { DefineFunction, SlackFunction } from "deno-slack-sdk/mod.ts";
 import pLimit from "npm:p-limit"; // concurrency limiter
 import { scoreRelevance } from "./score-relevance.ts";
