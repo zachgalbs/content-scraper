@@ -47,10 +47,13 @@ export function decodeXMLEntities(text: string): string {
     .replace(/&#8230;/g, "..."); // ellipsis
 }
 
-const limit = pLimit(3);
+const limit = pLimit(5);
 // 4. The revised RSS parsing function (async) using Readability where necessary
-export async function ParseRSSFeedFunction(xmlText: string, sourceUrl: string) {
-  const articles = [];
+export async function ParseRSSFeedFunction(
+  xmlText: string,
+  sourceName: string,
+  sourceUrl: string,
+) {
   const parser = new XMLParser();
   const jObj = parser.parse(xmlText);
   const items = extractFeedItems(jObj);
@@ -68,11 +71,10 @@ export async function ParseRSSFeedFunction(xmlText: string, sourceUrl: string) {
         const creator = item["dc:creator"] || item.author?.name ||
           "Unknown Author";
 
-        // If domain doesn’t match, skip
+        // If domain doesn't match, skip
         const sourceRootDomain = getRootDomain(sourceUrl);
         const linkRootDomain = getRootDomain(link);
         if (sourceRootDomain !== linkRootDomain) {
-          console.log(`Skipping link: ${link} (domain mismatch)`);
           return null; // skip
         }
 
@@ -86,7 +88,7 @@ export async function ParseRSSFeedFunction(xmlText: string, sourceUrl: string) {
 
         return {
           title: decodeXMLEntities(title.trim()),
-          source: sourceUrl,
+          source: sourceName,
           link: link.trim(),
           pubDate,
           creator: decodeXMLEntities(creator.trim()),
@@ -174,10 +176,6 @@ export async function fetchWithTimeout(
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
-    // Start logging
-    console.log(
-      `[INFO] [fetchWithTimeout] Fetching: ${url}, timeout: ${timeoutMs}ms`,
-    );
     const response = await fetch(url, { signal: controller.signal });
     return response;
   } finally {

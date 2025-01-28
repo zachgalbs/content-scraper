@@ -28,6 +28,41 @@ export const NEWS_SOURCES: NewsSource[] = [
   {
     name: "MLOps Substack",
     url: "https://mlops.substack.com/feed",
-    type: "rss"
-  }
-]; 
+    type: "rss",
+  },
+  {
+    name: "MIT Technology Review",
+    url: "https://www.technologyreview.com/feed",
+    type: "rss",
+  },
+  {
+    name: "KD Nuggets",
+    url: "https://www.kdnuggets.com/feed",
+    type: "rss",
+  },
+  {
+    name: "Analytics Insight",
+    url: "https://www.analyticsinsight.net/feed",
+    type: "rss",
+  },
+  {
+    name: "Artificial Intelligence News",
+    url: "https://www.artificialintelligence-news.com/feed",
+    type: "rss",
+  },
+  {
+    name: "AI Magazine",
+    url: "https://aimagazine.com/api/multi-feed?feedType=rss&limit=10&contentType=report&paged=1",
+    type: "rss",
+  },
+  {
+    name: "CIO",
+    url: "https://www.cio.com/rss",
+    type: "rss",
+  },
+  {
+    name: "Nutanix",
+    url: "https://www.nutanix.com/theforecastbynutanix.feed.rss.xml",
+    type: "rss",
+  },
+];

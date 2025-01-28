@@ -1,7 +1,7 @@
 import pLimit from "npm:p-limit"; // Concurrency limiter
 
 // Limit the number of simultaneous API calls
-const limit = pLimit(3); // Maximum 3 simultaneous OpenAI API calls
+const limit = pLimit(5); // Maximum 5 simultaneous OpenAI API calls
 
 export async function scoreRelevance(
   fullText: string,
@@ -22,7 +22,7 @@ export async function scoreRelevance(
     const startTime = performance.now();
 
     // Prepare the request payload
-    const truncatedText = fullText.slice(0, 1000); // Limit to 1000 characters
+    const truncatedText = fullText.slice(0, 3000); // Limit to 3000 characters
     const requestBody = JSON.stringify({
       model: "gpt-4o-mini", // Specify the OpenAI model
       messages: [
@@ -82,7 +82,7 @@ export async function scoreRelevance(
 
     // Use AbortController to implement a request timeout
     const controller = new AbortController();
-    const timeoutMs = 10_000; // 10 seconds
+    const timeoutMs = 3_000; // 3 seconds
     const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
     try {

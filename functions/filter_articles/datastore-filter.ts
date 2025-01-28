@@ -51,7 +51,6 @@ export default SlackFunction(
               datastore: ArticleDatastore.name,
               id: item.id,
             });
-            console.log(`Deleted article with id "${item.id}" from datastore.`);
           }
         } else {
           console.log("No articles found in the datastore to delete.");

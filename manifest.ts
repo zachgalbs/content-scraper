@@ -32,6 +32,11 @@ export default Manifest({
     "www.ycombinator.com",
     "mlops.substack.com",
     "future.forem.com",
+    "www.technologyreview.com",
+    "www.kdnuggets.com",
+    "www.analyticsinsight.net",
+    "www.artificialintelligence-news.com",
+    "aimagazine.com",
   ],
   botScopes: [
     "commands",

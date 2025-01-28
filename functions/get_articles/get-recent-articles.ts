@@ -60,7 +60,11 @@ export default SlackFunction(
 
         // -- Parse the feed to extract articles (which may also fetch article HTML in parallel)
         const parseStart = performance.now();
-        const articles = await ParseRSSFeedFunction(xmlText, source.url);
+        const articles = await ParseRSSFeedFunction(
+          xmlText,
+          source.name,
+          source.url,
+        );
         const parseEnd = performance.now();
         console.log(
           `[INFO] [${source.name}] Parsed feed in ${
