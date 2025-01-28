@@ -1,7 +1,7 @@
 interface NewsSource {
   name: string;
   url: string;
-  type: 'rss' | 'api';
+  type: "rss" | "atom";
 }
 
 export const NEWS_SOURCES: NewsSource[] = [

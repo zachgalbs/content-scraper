@@ -37,6 +37,32 @@ export default SlackFunction(
     const { articles } = inputs;
     const filteredArticles = [];
 
+    // Function to clear all items from the datastore
+    async function clearDatastore() {
+      try {
+        // Fetch all items from the datastore
+        const allItems = await client.apps.datastore.query({
+          datastore: ArticleDatastore.name,
+        });
+
+        if (allItems.ok && allItems.items.length > 0) {
+          for (const item of allItems.items) {
+            await client.apps.datastore.delete({
+              datastore: ArticleDatastore.name,
+              id: item.id,
+            });
+            console.log(`Deleted article with id "${item.id}" from datastore.`);
+          }
+        } else {
+          console.log("No articles found in the datastore to delete.");
+        }
+      } catch (error) {
+        console.error("Failed to clear the datastore:", error);
+      }
+    }
+
+    await clearDatastore();
+
     for (const article of articles) {
       // Check if the article title already exists in the datastore
       const existingArticle = await client.apps.datastore.get({

@@ -51,7 +51,7 @@ export default SlackFunction(
       try {
         const { score, explanation } = await scoreRelevance(article.fullText);
 
-        if (score > 70) {
+        if (score > 50) {
           article.score = score;
           article.explanation = explanation;
           relevantArticles.push(article);
@@ -60,6 +60,8 @@ export default SlackFunction(
           );
         }
       } catch (error) {
+        console.log("Article text:", article.fullText);
+        console.log("Article length:", article.fullText.length);
         console.error("Error scoring article:", error);
       }
     }

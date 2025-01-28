@@ -4,7 +4,7 @@ import { FilterDatastoreArticlesFunction } from "../functions/filter_articles/da
 import { FilterRelevantArticlesFunction } from "../functions/filter_articles/filter-relevance.ts";
 import { SummarizeArticlesFunction } from "../functions/return_articles/summarize-articles.ts";
 import { SendArticleMessagesFunction } from "../functions/return_articles/send-article-messages.ts";
-import { GetLatestArticlesSlackFunction } from "../functions/get_articles/get-recent-articles-slack.ts";
+import { GetLatestArticlesFunction } from "../functions/get_articles/get-recent-articles.ts";
 
 export const ReminderWorkflow = DefineWorkflow({
   callback_id: "reminder-workflow",
@@ -20,7 +20,7 @@ export const ReminderWorkflow = DefineWorkflow({
 
 // 1. Get the latest articles
 const getArticlesStep = ReminderWorkflow.addStep(
-  GetLatestArticlesSlackFunction,
+  GetLatestArticlesFunction,
   {},
 );
 
@@ -32,10 +32,11 @@ const filteredArticles = ReminderWorkflow.addStep(
   },
 );
 
-// 3. Store the articles in the datastore
-// ReminderWorkflow.addStep(StoreArticleFunction, {
-//   articles: filteredArticles.outputs.articles,
-// });
+//3. Store the articles in the datastore
+ReminderWorkflow.addStep(StoreArticleFunction, {
+  articles: filteredArticles.outputs.articles,
+});
+
 // 4. Filter the articles to only include articles that are relevant
 const relevantArticles = ReminderWorkflow.addStep(
   FilterRelevantArticlesFunction,

@@ -1,6 +1,9 @@
 {
   "imports": {
     "deno-slack-sdk/": "https://deno.land/x/deno_slack_sdk@2.15.0/",
-    "deno-slack-api/": "https://deno.land/x/deno_slack_api@2.8.0/"
+    "deno-slack-api/": "https://deno.land/x/deno_slack_api@2.8.0/",
+    "npm:jsdom": "npm:jsdom@26.0.0",
+    "npm:decimal.js": "npm:decimal.js@10.4.3",
+    "npm:@mozilla/readability": "npm:@mozilla/readability@0.4.2"
   }
 }

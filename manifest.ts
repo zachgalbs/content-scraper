@@ -25,10 +25,12 @@ export default Manifest({
   outgoingDomains: [
     "api.openai.com",
     "feed.infoq.com",
+    "www.infoq.com",
     "techcrunch.com",
     "dev.to",
     "news.ycombinator.com",
     "mlops.substack.com",
+    "future.forem.com",
   ],
   botScopes: [
     "commands",
