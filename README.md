@@ -8,11 +8,12 @@ This project is a Slack app designed to fetch, summarize, and score the relevanc
 
 To build an evolving list of AI influencers, potential podcast guests, and trending topics by analyzing current AI trends.
 
-## Features (so far)
+## Features
 
-- Fetches articles from multiple RSS feeds.
+- Fetches and parses articles from multiple RSS feeds.
+- Filters articles based on relevance to AI native development.
+- Tags a topic to each article
 - Summarizes articles using OpenAI's API.
-- Scores articles based on relevance to AI, machine learning, and native development.
 - Sends relevent articles to a specified Slack channel.
 
 ## Project Structure
@@ -33,35 +34,39 @@ To build an evolving list of AI influencers, potential podcast guests, and trend
 
 ### Functions
 
-#### Article Functions:
+#### Getting Articles:
 
   - **Parse RSS Feed:**
-    - Looks through Really Simple Syndication Feed provided by the website and gets each article or 'item' from the xml text
-    - Goes through each article and finds the title, link, date published, and the creator of the article.
+    - Looks through Really Simple Syndication Feed provided by the source and gets each article or 'item' from the xml text
+    - Goes through each article and finds the title, link, date published, creator, and full text of the article.
     - Returns every article available (around 20) with these variables
    
   - **Fetch Latest Articles:**
-    - Goes through each source provided and retrieves the article(s) via the Parse RSS Feed function
-    - Gets articles from each source and generates a summary for each article
-    - Pushes articles from source to list of all articles with the source, title, summary etc.
-    - Finally, returns a sorted list of all the articles based on their publish date
-  
-  - **Get Article Info:**
-    - Gets the sorted list of latest articles, and returns a new list of article objects with the date published omitted
-   
-  - **Summarize Text:**
-    - Given an article's text, prompts chatgpt 4o mini to summarize the text
+    - Goes through each source provided and retrieves the articles via the Parse RSS Feed function
+    - Sorts articles by date published, adds the three latest articles to a list
   
   - **Score Relevance**
     - Rates the relevance of an article on a scale of 1-100 based on a subjective interpretation of how related the article is to AI stuff
-    - Also gives an explanation on why it gave the score it did (e.g. Low score because there was no mention of AI)
 
-#### Datastore Functions:
+#### Filtering Articles:
+
+  - **Datastore Filter Articles:**
+    - Checks each article against a datastore to determine if it already exists.
+    - If an article is found in the datastore, it is skipped to avoid duplicate messages.
+    - Articles not found in the datastore are added to a 'filtered list'.
+    - Returns a list of unique articles that are not already stored.
+   
+      
+  - **Filter Relevant Articles:**
+    - Takes the 'filtered list' and filters them again based on their relevance to AI, machine learning, and native development.
+    - For each article, it uses a 'Score Relevance' function to determine a relevance score with ChatGPT.
+    - Only articles with a score greater than 70 are considered relevant and included in the output.
+    - Returns a list of relevant articles, each annotated with a relevance score and an explanation.
+
  - **Store Article Function**
-   - First, sets the callback_id, name, etc.
-   - Second, defines the inputs as the article title, link, and date published
+   - First, defines the inputs as the article title, link, and date published
    - Next, defines the outputs as a boolean 'success' parameter and a message (e.g. success: true, message: saved successfully at __)
-   - 
+   - Lastly, uses Slack's datastore.put command to put a list of articles in the datastore.
 
 ### Triggers
 
