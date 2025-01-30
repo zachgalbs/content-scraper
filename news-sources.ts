@@ -65,4 +65,29 @@ export const NEWS_SOURCES: NewsSource[] = [
     url: "https://www.nutanix.com/theforecastbynutanix.feed.rss.xml",
     type: "rss",
   },
+  {
+    name: "TechFundingNews",
+    url: "https://techfundingnews.com/feed/",
+    type: "rss",
+  },
+  {
+    name: "PRWeb Business Technology",
+    url: "https://www.prweb.com/rss/business-technology-latest-news/business-technology-latest-news-list.rss",
+    type: "rss",
+  },
+  {
+    name: "PRWeb Consumer Technology",
+    url: "https://www.prweb.com/rss/consumer-technology-latest-news/consumer-technology-latest-news-list.rss",
+    type: "rss",
+  },
+  {
+    name: "Synaptics Investor Relations",
+    url: "https://investor.synaptics.com/rss/news-releases.xml",
+    type: "rss",
+  },
+  {
+    name: "ArXiv",
+    url: "https://rss.arxiv.org/rss/cs.ai",
+    type: "rss",
+  },
 ];
