@@ -1,154 +1,140 @@
-import pLimit from "npm:p-limit"; // Concurrency limiter
+// filter-relevance.ts
 
-// Limit the number of simultaneous API calls
-const limit = pLimit(5); // Maximum 5 simultaneous OpenAI API calls
+import { DefineFunction, SlackFunction } from "deno-slack-sdk/mod.ts";
+import pLimit from "npm:p-limit"; // concurrency limiter
+import { scoreRelevance } from "./LLM-score.ts";
+import { ArticleType } from "../other/article-type-definition.ts";
+import { Schema } from "deno-slack-sdk/mod.ts";
 
-export async function scoreRelevance(
-  fullText: string,
-): Promise<{ score: number; explanation: string }> {
-  return limit(async () => {
-    // Fetch the OpenAI API key from environment variables
-    const apiKey = Deno.env.get("OPENAI_API_KEY");
-    if (!apiKey) {
-      throw new Error("OpenAI API key is not set in environment variables.");
-    }
+export const ScoreRelevanceFunction = DefineFunction({
+  callback_id: "score_relevance_function",
+  title: "Score Relevance",
+  description: "Scores articles based on relevance",
+  source_file: "functions/filter_articles/score-relevance.ts",
+  input_parameters: {
+    properties: {
+      articles: {
+        type: Schema.types.array,
+        items: {
+          type: ArticleType,
+        },
+      },
+    },
+    required: ["articles"],
+  },
+  output_parameters: {
+    properties: {
+      articles: {
+        type: Schema.types.array,
+        items: {
+          type: ArticleType,
+        },
+      },
+    },
+    required: ["articles"],
+  },
+});
 
-    // Validate input text
-    if (!fullText?.trim()) {
-      throw new Error("Input text is empty or invalid.");
-    }
-
-    // Mark start time for performance logging
+export default SlackFunction(
+  ScoreRelevanceFunction,
+  async ({ inputs }) => {
+    const { articles } = inputs;
     const startTime = performance.now();
 
-    // Prepare the request payload
-    const truncatedText = fullText.slice(0, 3000); // Limit to 3000 characters
-    const requestBody = JSON.stringify({
-      model: "gpt-4o-mini", // Specify the OpenAI model
-      messages: [
-        { role: "system", content: "You are a helpful assistant." },
-        {
-          role: "user",
-          content: `
-          **Context**
-
-          You are assisting an AI startup team that needs to stay informed about:
-          1. **Cutting-edge advancements in Artificial Intelligence (AI) and Machine Learning (ML)**.
-          2. **Native Development practices** for platform-specific deployment of AI/ML (e.g., optimizing models for mobile, using APIs like Core ML or TensorFlow Lite, leveraging native hardware).
-
-          **Task**
-
-          Evaluate the following text based on its relevance to:
-          - AI and ML topics.
-          - **Native Development**, such as performance optimization, hardware integration, and platform-specific tools.
-
-          **Scoring Guidelines**
-          1. **High Relevance (70-100)**:
-            - Text explicitly discusses AI/ML **in the context of native development**.
-            - Mentions specific tools, frameworks, or techniques (e.g., Metal Performance Shaders, TensorFlow Lite, Core ML).
-            - Addresses low-level optimizations or native deployment challenges.
-
-          2. **Moderate Relevance (30-69)**:
-            - Focuses on AI/ML broadly but lacks native development context.
-            - Discusses native development topics that are **potentially applicable** to AI/ML workflows.
-
-          3. **Low Relevance (1-29)**:
-            - Does not discuss AI/ML or native development meaningfully.
-            - Mentions generic AI topics without actionable insights for native implementation.
-
-          **Input Text**
-
-          ${truncatedText}
-
-          **Output**
-
-          Provide one line of output:
-          - A **numeric score (1-100)**.
-          - A brief **justification** for the score, focusing on the text's relevance to both AI/ML and native development.
-
-          **Examples**
-          1. 95|Detailed explanation of using TensorFlow Lite for Android inference with hardware acceleration.
-          2. 40|High-level overview of machine learning concepts without native deployment details.
-          3. 10|Unrelated discussion on social media algorithms.
-
-          **Focus**
-          - Prioritize **native development details** when scoring.
-          - Penalize generic AI content that lacks native ties.`,
-        },
-      ],
-      max_tokens: 150, // Limit the length of the response
-      temperature: 0.1, // Encourage consistent responses
-    });
-
-    // Use AbortController to implement a request timeout
-    const controller = new AbortController();
-    const timeoutMs = 3_000; // 3 seconds
-    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
-
-    try {
-      console.log(
-        `[scoreRelevance] Sending request to OpenAI API (timeout: ${timeoutMs}ms)`,
-      );
-
-      const response = await fetch(
-        "https://api.openai.com/v1/chat/completions",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${apiKey}`,
-          },
-          body: requestBody,
-          signal: controller.signal,
-        },
-      );
-
-      clearTimeout(timeoutId); // Clear timeout when the response is received
-
-      if (!response.ok) {
-        const errorBody = await response.text();
-        console.error(
-          `[scoreRelevance] OpenAI API error: ${response.status}. Response: ${errorBody}`,
-        );
-        throw new Error(`OpenAI API error: ${response.status}`);
-      }
-
-      const data = await response.json();
-      const [score, explanation] = data.choices[0].message.content.trim().split(
-        "|",
-      );
-
-      // Validate the score
-      const parsedScore = parseInt(score, 10);
-      if (isNaN(parsedScore) || parsedScore < 0 || parsedScore > 100) {
-        console.warn(`[scoreRelevance] Invalid score received: ${score}`);
-        return {
-          score: 0,
-          explanation: "Invalid score received from the AI.",
-        };
-      }
-
-      // Log performance metrics
-      const endTime = performance.now();
-      console.log(
-        `[scoreRelevance] Completed in ${
-          (endTime - startTime).toFixed(2)
-        }ms. Score: ${parsedScore}`,
-      );
-
+    // check if articles array is empty or invalid
+    if (!articles || articles.length === 0 || !articles[0]?.title) {
+      console.log("[FilterRelevantArticles] No valid articles to process.");
       return {
-        score: parsedScore,
-        explanation: explanation?.trim() || "No explanation provided.",
+        outputs: {
+          articles: [],
+        },
       };
-    } catch (error) {
-      if (error instanceof Error && error.name === "AbortError") {
-        console.error("[scoreRelevance] Request timed out.");
-      } else if (error instanceof Error) {
-        console.error(`[scoreRelevance] Error: ${error.message}`);
-      } else {
-        console.error("[scoreRelevance] An unknown error occurred:", error);
-      }
-      throw error; // Re-throw the error after logging
     }
-  });
-}
+
+    console.log(
+      `[FilterRelevantArticles] Received ${articles.length} articles.`,
+    );
+
+    // Limit concurrency to 5 articles at a time
+    const limit = pLimit(5);
+
+    // Build an array of Promises for scoring articles
+    const scoringPromises = articles.map((article, idx) =>
+      limit(async () => {
+        const articleStart = performance.now();
+
+        try {
+          // Score the article (ALWAYS set score, even if below threshold)
+          const { score, explanation } = await scoreRelevance(article.fullText);
+          const articleEnd = performance.now();
+
+          // Assign the score and explanation for all articles
+          article.score = score;
+          article.explanation = explanation;
+
+          console.log(
+            `[FilterRelevantArticles] Article #${
+              idx + 1
+            } "${article.title}" from ${article.source} scored in ${
+              (articleEnd - articleStart).toFixed(2)
+            } ms. Score = ${score}`,
+          );
+
+          // Return the article if relevant; otherwise null
+          return score > 50 ? article : null;
+        } catch (error) {
+          console.log("Article text length:", article.fullText.length);
+          console.error(
+            `[FilterRelevantArticles] Error scoring article "${article.title}" from ${article.source}:`,
+            error,
+          );
+          return null; // skip or handle differently
+        }
+      })
+    );
+
+    // Wait for all scoring operations to finish
+    const scoredResults = await Promise.all(scoringPromises);
+
+    // Filter out any nulls (i.e. articles under the threshold or error'd out)
+    const relevantArticles = scoredResults.filter(Boolean) as typeof articles;
+
+    // --- Summation of scores by source ---
+    // Track every article's score, no matter its threshold
+    const sourceScores: { [source: string]: number } = {};
+
+    // Populate all sources with a default score of 0
+    for (const article of articles) {
+      if (article.source && !(article.source in sourceScores)) {
+        sourceScores[article.source] = 0;
+      }
+    }
+
+    // Accumulate scores for all articles (yes, even the ones that didn't make the cut)
+    for (const article of articles) {
+      if (article.source) {
+        sourceScores[article.source] += article.score ?? 0;
+      }
+    }
+
+    // Log the total scores for each source
+    for (const [source, totalScore] of Object.entries(sourceScores)) {
+      console.log(
+        `[FilterRelevantArticles] ${source} total score: ${totalScore}`,
+      );
+    }
+
+    const endTime = performance.now();
+    console.log(
+      `[FilterRelevantArticles] Completed filtering in ${
+        (endTime - startTime).toFixed(2)
+      } ms. Found ${relevantArticles.length} articles with scores.`,
+    );
+
+    return {
+      outputs: {
+        articles: relevantArticles, // Return all articles with scores
+      },
+    };
+  },
+);

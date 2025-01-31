@@ -66,15 +66,21 @@ export default SlackFunction(
       // Check if the article title already exists in the datastore
       const existingArticle = await client.apps.datastore.get({
         datastore: ArticleDatastore.name,
-        id: `${article.title}-${article.pubDate}`,
+        id: `${article.title}-${article.link}`,
       });
-      // if the get request is successful and there are properties in the item, we have successfully located the article and we can skip it
-      if (existingArticle.ok && existingArticle.item.title) {
-        console.log(`Article with title "${article.title}" already exists.`);
-        continue; // Skip if the article already exists
+
+      // Check if the article exists and has a relevance score below 40
+      if (
+        existingArticle.ok && existingArticle.item.title &&
+        article.score < 40
+      ) {
+        console.log(
+          `Article with title "${article.title}" exists and has a relevance score below 40.`,
+        );
+        continue; // Skip if the article exists and has a relevance score below 40
       }
 
-      // If the article does not exist in the datastore, add it to the filtered list
+      // If the article does not exist or has a relevance score of 40 or above, add it to the filtered list
       console.log(
         `Adding article with title "${article.title}" to filtered list.`,
       );

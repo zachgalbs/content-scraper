@@ -1,5 +1,6 @@
 import { DefineFunction, Schema, SlackFunction } from "deno-slack-sdk/mod.ts";
 import { ArticleType } from "../other/article-type-definition.ts";
+import { ArticleDatastore } from "../../datastores/datastore-definition.ts";
 
 // 1. Define the function metadata, inputs, and outputs
 export const SendArticleMessagesFunction = DefineFunction({
@@ -59,6 +60,25 @@ export default SlackFunction(
     });
 
     for (const article of articles) {
+      // Check if the article has been posted more than 3 times ever
+      const getResp = await client.apps.datastore.get<
+        typeof ArticleDatastore.definition
+      >({
+        datastore: ArticleDatastore.name,
+        id: `${article.title}-${article.link}`,
+      });
+
+      if (getResp.ok && getResp.item) {
+        const { times_posted } = getResp.item.times_posted;
+
+        if (times_posted > 3) {
+          console.log(
+            `Skipping article: ${article.title} as it has been posted more than 3 times.`,
+          );
+          continue; // Skip sending this article
+        }
+      }
+
       const readablePubDate = new Date(article.pubDate).toLocaleString(
         "en-US",
         {
@@ -88,6 +108,23 @@ export default SlackFunction(
               `Failed to send message for article "${article.title}": ${postResp.error}`,
           },
         };
+      }
+
+      // Increment the times_posted value in the datastore
+      const updateResp = await client.apps.datastore.put<
+        typeof ArticleDatastore.definition
+      >({
+        datastore: ArticleDatastore.name,
+        item: {
+          ...getResp.item,
+          times_posted: (getResp.item?.times_posted || 0) + 1,
+        },
+      });
+
+      if (!updateResp.ok) {
+        console.log(
+          `Failed to update times_posted for article: ${article.title}`,
+        );
       }
     }
 

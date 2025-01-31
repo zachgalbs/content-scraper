@@ -5,6 +5,7 @@ import { FilterRelevantArticlesFunction } from "../functions/filter_articles/fil
 import { SummarizeArticlesFunction } from "../functions/return_articles/summarize-articles.ts";
 import { SendArticleMessagesFunction } from "../functions/return_articles/send-article-messages.ts";
 import { GetLatestArticlesFunction } from "../functions/get_articles/get-recent-articles.ts";
+import { ScoreRelevanceFunction } from "../functions/filter_articles/score-relevance.ts";
 
 export const ReminderWorkflow = DefineWorkflow({
   callback_id: "reminder-workflow",
@@ -24,7 +25,7 @@ const getArticlesStep = ReminderWorkflow.addStep(
   {},
 );
 
-// 2. Filter the articles to only include articles that are not already in the datastore
+// 2. Filter the articles to only include articles that were previously relevant
 const filteredArticles = ReminderWorkflow.addStep(
   FilterDatastoreArticlesFunction,
   {
@@ -32,31 +33,39 @@ const filteredArticles = ReminderWorkflow.addStep(
   },
 );
 
-//3. Store the articles in the datastore
-ReminderWorkflow.addStep(StoreArticleFunction, {
-  articles: filteredArticles.outputs.articles,
-});
-
-// 4. Filter the articles to only include articles that are relevant
-const relevantArticles = ReminderWorkflow.addStep(
-  FilterRelevantArticlesFunction,
+// 3. Score the articles
+const scoredArticles = ReminderWorkflow.addStep(
+  ScoreRelevanceFunction,
   {
     articles: filteredArticles.outputs.articles,
   },
 );
-// 5. Summarize the articles
+
+// 4. Store the articles in the datastore
+ReminderWorkflow.addStep(StoreArticleFunction, {
+  articles: scoredArticles.outputs.articles,
+});
+
+// 5. Filter the articles to only include articles that are relevant
+const relevantArticles = ReminderWorkflow.addStep(
+  FilterRelevantArticlesFunction,
+  {
+    articles: scoredArticles.outputs.articles,
+  },
+);
+// 6. Summarize the articles
 const summarizedArticles = ReminderWorkflow.addStep(
   SummarizeArticlesFunction,
   {
     articles: relevantArticles.outputs.articles,
   },
 );
-// 6. Send the articles to the channel
+// 7. Send the articles to the channel
 const sendArticles = ReminderWorkflow.addStep(SendArticleMessagesFunction, {
   articles: summarizedArticles.outputs.articles,
   channel_id: ReminderWorkflow.inputs.channel_id,
 });
-// Send a message to the channel indicating that the articles have been sent
+// 8. Send a message to the channel indicating that the articles have been sent
 ReminderWorkflow.addStep(Schema.slack.functions.SendMessage, {
   channel_id: ReminderWorkflow.inputs.channel_id,
   message: sendArticles.outputs.message,

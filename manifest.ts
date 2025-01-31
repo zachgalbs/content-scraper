@@ -1,10 +1,11 @@
 import { Manifest } from "deno-slack-sdk/mod.ts";
 import { ReminderWorkflow } from "./workflows/reminder-workflow.ts";
+import { ReactionWorkflow } from "./workflows/thumbs-up-workflow.ts";
 import { ArticleDatastore } from "./datastores/datastore-definition.ts";
 import { StoreArticleFunction } from "./functions/return_articles/store-articles.ts";
 import { SendArticleMessagesFunction } from "./functions/return_articles/send-article-messages.ts";
 import { FilterDatastoreArticlesFunction } from "./functions/filter_articles/datastore-filter.ts";
-import { FilterRelevantArticlesFunction } from "./functions/filter_articles/filter-relevance.ts";
+import { ScoreRelevanceFunction } from "./functions/filter_articles/score-relevance.ts";
 import { ArticleType } from "./functions/other/article-type-definition.ts";
 /**
  * The app manifest contains the app's configuration. This
@@ -19,24 +20,30 @@ export default Manifest({
     StoreArticleFunction,
     SendArticleMessagesFunction,
     FilterDatastoreArticlesFunction,
-    FilterRelevantArticlesFunction,
+    ScoreRelevanceFunction,
   ],
-  workflows: [ReminderWorkflow],
+  workflows: [ReminderWorkflow, ReactionWorkflow],
   outgoingDomains: [
     "api.openai.com",
     "feed.infoq.com",
-    "www.infoq.com",
+    "infoq.com",
     "techcrunch.com",
     "dev.to",
     "news.ycombinator.com",
-    "www.ycombinator.com",
+    "ycombinator.com",
     "mlops.substack.com",
     "future.forem.com",
-    "www.technologyreview.com",
-    "www.kdnuggets.com",
-    "www.analyticsinsight.net",
-    "www.artificialintelligence-news.com",
+    "technologyreview.com",
+    "kdnuggets.com",
+    "analyticsinsight.net",
+    "artificialintelligence-news.com",
     "aimagazine.com",
+    "cio.com",
+    "nutanix.com",
+    "techfundingnews.com",
+    "prweb.com",
+    "investor.synaptics.com",
+    "rss.arxiv.org",
   ],
   botScopes: [
     "commands",
@@ -44,6 +51,7 @@ export default Manifest({
     "chat:write.public",
     "datastore:read",
     "datastore:write",
+    "reactions:read",
   ],
   datastores: [ArticleDatastore],
   types: [ArticleType],

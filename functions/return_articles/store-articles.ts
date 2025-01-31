@@ -44,16 +44,51 @@ export default SlackFunction(
     }
 
     for (const article of articles) {
-      // Attempt to store each article in the datastore
+      // Check if the article already exists in the datastore
+      const getResp = await client.apps.datastore.get<
+        typeof ArticleDatastore.definition
+      >({
+        datastore: ArticleDatastore.name,
+        id: `${article.title}-${article.link}`,
+      });
+
+      if (getResp.ok && getResp.item) {
+        console.log(`Article already exists: ${article.title}`);
+
+        // Update the relevance_score of the existing article
+        const updateResp = await client.apps.datastore.put<
+          typeof ArticleDatastore.definition
+        >({
+          datastore: ArticleDatastore.name,
+          item: {
+            ...getResp.item,
+            relevance_score: article.score, // Update the relevance_score
+          },
+        });
+
+        if (!updateResp.ok) {
+          const updateErrorMsg =
+            `Error updating article: ${article.title}. Contact the app maintainers with the following information - (Error detail: ${updateResp.error})`;
+          console.log(updateErrorMsg);
+
+          return { error: updateErrorMsg };
+        }
+
+        continue; // Skip storing this article as new
+      }
+
+      // Attempt to store each new article in the datastore
       const putResp = await client.apps.datastore.put<
         typeof ArticleDatastore.definition
       >({
         datastore: ArticleDatastore.name,
         item: {
-          id: `${article.title}-${article.pubDate}`,
+          id: `${article.title}-${article.link}`,
           title: article.title,
           link: article.link,
           pubDate: article.pubDate,
+          times_posted: 0,
+          relevance_score: article.score,
         },
       });
 
@@ -69,7 +104,7 @@ export default SlackFunction(
     return {
       outputs: {
         success: true,
-        message: "All articles stored successfully.",
+        message: "All new articles stored successfully.",
       },
     };
   },

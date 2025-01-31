@@ -8,6 +8,8 @@ export const ArticleDatastore = DefineDatastore({
     title: { type: Schema.types.string },
     link: { type: Schema.types.string },
     pubDate: { type: Schema.types.string },
+    times_posted: { type: Schema.types.number },
+    relevance_score: { type: Schema.types.number },
   },
 });
 
