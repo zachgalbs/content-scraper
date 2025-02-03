@@ -33,86 +33,117 @@ export default SlackFunction(
   async ({ inputs, client }) => {
     const { articles } = inputs;
 
-    // check if the articles array is empty (via checking if the first article has no title)
-    if (!articles[0]?.title) {
+    try {
+      // check if the articles array is empty
+      if (!articles || articles.length === 0 || !articles[0]?.title) {
+        return {
+          outputs: {
+            success: false,
+            message: "No articles to store.",
+          },
+        };
+      }
+
+      for (const article of articles) {
+        try {
+          // Generate a consistent ID format
+          const articleId = `${article.title}-${article.link}`.trim();
+          
+          if (!articleId) {
+            console.error(`Invalid article ID for article: ${JSON.stringify(article)}`);
+            continue;
+          }
+
+          // Check if the article already exists in the datastore
+          const getResp = await client.apps.datastore.get<
+            typeof ArticleDatastore.definition
+          >({
+            datastore: ArticleDatastore.name,
+            id: articleId,
+          });
+
+          if (getResp.ok && getResp.item) {
+            console.log(`Article already exists: ${article.title}`);
+
+            // Validate the relevance score before updating
+            const relevanceScore = typeof article.score === 'number' ? article.score : null;
+            
+            // Create update payload with proper null checks
+            const updatePayload = {
+              id: articleId, // Use our generated ID instead of getResp.item.id
+              title: article.title.trim(),
+              link: article.link.trim(),
+              pubDate: article.pubDate || new Date().toISOString(),
+              times_posted: getResp.item.times_posted || 0,
+              relevance_score: relevanceScore,
+            };
+
+            const updateResp = await client.apps.datastore.update<
+              typeof ArticleDatastore.definition
+            >({
+              datastore: ArticleDatastore.name,
+              item: updatePayload,
+            });
+
+            if (!updateResp.ok) {
+              console.error(
+                `Error updating article: ${article.title}. Error: ${updateResp.error}`,
+                `\nFull response: ${JSON.stringify(updateResp)}`,
+              );
+              // Log the item we're trying to update for debugging
+              console.log(`Update payload: ${JSON.stringify(updatePayload)}`);
+              // Continue instead of throwing to allow other articles to be processed
+              continue;
+            }
+
+            continue; // Skip storing this article as new
+          }
+
+          // Attempt to store each new article in the datastore
+          const putResp = await client.apps.datastore.put<
+            typeof ArticleDatastore.definition
+          >({
+            datastore: ArticleDatastore.name,
+            item: {
+              id: articleId,
+              title: article.title.trim(),
+              link: article.link.trim(),
+              pubDate: article.pubDate || new Date().toISOString(),
+              times_posted: 0,
+              relevance_score: article.score,
+            },
+          });
+
+          if (!putResp.ok) {
+            console.error(
+              `Error storing new article: ${article.title}. Error: ${putResp.error}`,
+            );
+            throw new Error(putResp.error);
+          }
+
+          console.log(`Successfully stored article: ${article.title}`);
+        } catch (articleError) {
+          console.error(`Error processing article: ${article.title}`, articleError);
+          // Continue with next article instead of failing the entire batch
+          continue;
+        }
+      }
+
+      return {
+        outputs: {
+          success: true,
+          message: "Successfully processed all articles.",
+        },
+      };
+    } catch (error) {
+      console.error("Error in StoreArticleFunction:", error);
+      const errorMessage = error instanceof Error ? error.message : String(error);
       return {
         outputs: {
           success: false,
-          message: "No articles to store.",
+          message: `Error storing articles: ${errorMessage}`,
         },
       };
     }
-
-    for (const article of articles) {
-      // Check if the article already exists in the datastore
-      const getResp = await client.apps.datastore.get<
-        typeof ArticleDatastore.definition
-      >({
-        datastore: ArticleDatastore.name,
-        id: `${article.title}-${article.link}`,
-      });
-
-      if (getResp.ok && getResp.item) {
-        console.log(`Article already exists: ${article.title}`);
-
-        // Update the relevance_score of the existing article
-        const updateResp = await client.apps.datastore.put<
-          typeof ArticleDatastore.definition
-        >({
-          datastore: ArticleDatastore.name,
-          item: {
-            ...getResp.item,
-            relevance_score: article.score, // Update the relevance_score
-          },
-        });
-
-        if (!updateResp.ok) {
-          const updateErrorMsg =
-            `Error updating article: ${article.title}. Contact the app maintainers with the following information - (Error detail: ${updateResp.error})`;
-          console.log(updateErrorMsg);
-
-          // Log additional error details if available
-          if (updateResp.error) {
-            console.error(
-              `Detailed error: ${JSON.stringify(updateResp.error)}`,
-            );
-          }
-
-          return { error: updateErrorMsg };
-        }
-
-        continue; // Skip storing this article as new
-      }
-
-      // Attempt to store each new article in the datastore
-      const putResp = await client.apps.datastore.put<
-        typeof ArticleDatastore.definition
-      >({
-        datastore: ArticleDatastore.name,
-        item: {
-          id: `${article.title}-${article.link}`,
-          title: article.title,
-          link: article.link,
-          pubDate: article.pubDate,
-          times_posted: 0,
-          relevance_score: article.score,
-        },
-      });
-
-      if (!putResp.ok) {
-        const draftSaveErrorMsg =
-          `Error saving article: ${article.title}. Contact the app maintainers with the following information - (Error detail: ${putResp.error})`;
-        console.log(draftSaveErrorMsg);
-
-        return { error: draftSaveErrorMsg };
-      }
-    }
-
-    return {
-      outputs: {
-        success: true,
-        message: "All new articles stored successfully.",
-      },
-    };
   },
 );

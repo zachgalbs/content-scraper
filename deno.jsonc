@@ -30,5 +30,5 @@
   "tasks": {
     "test": "deno fmt --check && deno lint && deno test --allow-read --allow-none"
   },
-  "nodeModulesDir": true
+  "nodeModulesDir": "auto"
 }

@@ -31,25 +31,11 @@ export const AnalyzeReactionFunctionDefinition = DefineFunction({
   },
 });
 
-const getMessageForReaction = (reaction: string): string => {
-  switch (reaction) {
-    case "sunglasses":
-      return "Cool! 😎";
-    case "thumbsup":
-      return "Great! 👍";
-    case "heart":
-      return "Love it! ❤️";
-    // Add more cases as needed
-    default:
-      return "A reaction was added!";
-  }
-};
-
 export default SlackFunction(
   AnalyzeReactionFunctionDefinition,
   ({ inputs }) => {
     const { reaction } = inputs;
-    const message = getMessageForReaction(reaction);
+    const message = "Thanks! 😊";
     return { outputs: { message } };
   },
 );

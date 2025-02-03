@@ -1,1 +1,10 @@
-{}
+{
+  "apps": {
+    "T06J41J8DQD": {
+      "app_id": "A08B1G5A7PH",
+      "team_domain": "tesslio",
+      "team_id": "T06J41J8DQD"
+    }
+  },
+  "default": "tesslio"
+}

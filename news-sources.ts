@@ -41,11 +41,6 @@ export const NEWS_SOURCES: NewsSource[] = [
     type: "rss",
   },
   {
-    name: "Analytics Insight",
-    url: "https://www.analyticsinsight.net/feed",
-    type: "rss",
-  },
-  {
     name: "Artificial Intelligence News",
     url: "https://www.artificialintelligence-news.com/feed",
     type: "rss",
@@ -58,11 +53,6 @@ export const NEWS_SOURCES: NewsSource[] = [
   {
     name: "CIO",
     url: "https://www.cio.com/rss",
-    type: "rss",
-  },
-  {
-    name: "Nutanix",
-    url: "https://www.nutanix.com/theforecastbynutanix.feed.rss.xml",
     type: "rss",
   },
   {

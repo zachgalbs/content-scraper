@@ -57,6 +57,7 @@ export async function ParseRSSFeedFunction(
   const parser = new XMLParser();
   const jObj = parser.parse(xmlText);
   const items = extractFeedItems(jObj);
+  const sourceRootDomain = getRootDomain(sourceUrl);
 
   // Build a list of promises to fetch article HTML in parallel, but with concurrency = 3
   const itemPromises = items.map((item) =>
@@ -72,14 +73,18 @@ export async function ParseRSSFeedFunction(
           "Unknown Author";
 
         // If domain doesn't match, skip
-        const sourceRootDomain = getRootDomain(sourceUrl);
         const linkRootDomain = getRootDomain(link);
         if (sourceRootDomain !== linkRootDomain) {
           return null; // skip
         }
 
-        // Fetch the article HTML with a timeout
-        const articleHTML = await fetchWithTimeout(link.trim(), 8_000);
+        // Pass the allowed domain to fetchWithTimeout
+        const articleHTML = await fetchWithTimeout(
+          link.trim(), 
+          8_000,
+          sourceRootDomain
+        );
+        
         let articleText = "";
         if (articleHTML.ok) {
           const text = await articleHTML.text();
@@ -158,25 +163,52 @@ function extractFeedItems(parsedData: RssFeed | AtomFeed): FeedItem[] {
     ? parsedData.feed?.entry
     : undefined;
 
-  return Array.isArray(items)
+  // Convert to array and limit to first 3 items
+  const itemsArray = Array.isArray(items)
     ? items as FeedItem[]
     : items
     ? [items as FeedItem]
     : [];
+
+  // Sort by date before slicing to get the most recent items
+  itemsArray.sort((a, b) => {
+    const dateA = new Date(a.pubDate || a.published || "").getTime();
+    const dateB = new Date(b.pubDate || b.published || "").getTime();
+    if (isNaN(dateA) || isNaN(dateB)) return 0;
+    return dateB - dateA; // descending
+  });
+
+  return itemsArray.slice(0, 2); // Only process the 2 most recent items
 }
 
 /**
  * A helper to wrap `fetch` with a timeout using `AbortController`.
+ * Now includes domain validation to prevent unwanted requests.
  */
 export async function fetchWithTimeout(
   url: string,
   timeoutMs = 10_000, // 10s timeout, adjust as needed
+  allowedDomain?: string, // Optional parameter for allowed domain
 ): Promise<Response> {
+  // Validate URL domain if allowedDomain is provided
+  if (allowedDomain) {
+    const urlDomain = getRootDomain(url);
+    if (urlDomain !== allowedDomain) {
+      throw new Error(`Domain ${urlDomain} does not match allowed domain ${allowedDomain}`);
+    }
+  }
+
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
-    const response = await fetch(url, { signal: controller.signal });
+    const response = await fetch(url, { 
+      signal: controller.signal,
+      headers: {
+        // Prevent loading images and other resources
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,text/plain',
+      }
+    });
     return response;
   } finally {
     clearTimeout(timeoutId);

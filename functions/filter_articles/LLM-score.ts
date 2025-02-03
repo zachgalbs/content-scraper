@@ -6,7 +6,7 @@ const limit = pLimit(5); // Maximum 5 simultaneous OpenAI API calls
 export async function scoreRelevance(
   fullText: string,
 ): Promise<{ score: number; explanation: string }> {
-  return limit(async () => {
+  return await limit(async () => {
     // Fetch the OpenAI API key from environment variables
     const apiKey = Deno.env.get("OPENAI_API_KEY");
     if (!apiKey) {
@@ -24,7 +24,7 @@ export async function scoreRelevance(
     // Prepare the request payload
     const truncatedText = fullText.slice(0, 3000); // Limit to 3000 characters
     const requestBody = JSON.stringify({
-      model: "gpt-4o-mini", // Specify the OpenAI model
+      model: "gpt-3.5-turbo", // Using gpt-3.5-turbo for faster responses
       messages: [
         { role: "system", content: "You are a helpful assistant." },
         {
@@ -76,13 +76,13 @@ export async function scoreRelevance(
           - Penalize generic AI content that lacks native ties.`,
         },
       ],
-      max_tokens: 150, // Limit the length of the response
-      temperature: 0.1, // Encourage consistent responses
+      max_tokens: 150,
+      temperature: 0.1,
     });
 
     // Use AbortController to implement a request timeout
     const controller = new AbortController();
-    const timeoutMs = 3_000; // 3 seconds
+    const timeoutMs = 10_000; // Increased to 10 seconds
     const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
     try {
@@ -103,52 +103,59 @@ export async function scoreRelevance(
         },
       );
 
-      clearTimeout(timeoutId); // Clear timeout when the response is received
+      // Clear the timeout since we got a response
+      clearTimeout(timeoutId);
 
       if (!response.ok) {
-        const errorBody = await response.text();
-        console.error(
-          `[scoreRelevance] OpenAI API error: ${response.status}. Response: ${errorBody}`,
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(
+          `OpenAI API error (${response.status}): ${
+            errorData.error?.message || "Unknown error"
+          }`,
         );
-        throw new Error(`OpenAI API error: ${response.status}`);
       }
 
       const data = await response.json();
-      const [score, explanation] = data.choices[0].message.content.trim().split(
-        "|",
-      );
+      const output = data.choices[0]?.message?.content?.trim() || "";
+
+      // Parse the score and explanation from the output (format: "score|explanation")
+      const [scoreStr, ...explanationParts] = output.split("|");
+      const score = parseInt(scoreStr, 10);
+      const explanation = explanationParts.join("|").trim();
 
       // Validate the score
-      const parsedScore = parseInt(score, 10);
-      if (isNaN(parsedScore) || parsedScore < 0 || parsedScore > 100) {
-        console.warn(`[scoreRelevance] Invalid score received: ${score}`);
-        return {
-          score: 0,
-          explanation: "Invalid score received from the AI.",
-        };
+      if (isNaN(score) || score < 1 || score > 100) {
+        throw new Error(
+          `Invalid score from OpenAI API: ${scoreStr}. Full response: ${output}`,
+        );
       }
 
       // Log performance metrics
       const endTime = performance.now();
       console.log(
-        `[scoreRelevance] Completed in ${
-          (endTime - startTime).toFixed(2)
-        }ms. Score: ${parsedScore}`,
+        `[scoreRelevance] Completed in ${(endTime - startTime).toFixed(2)}ms`,
       );
 
-      return {
-        score: parsedScore,
-        explanation: explanation?.trim() || "No explanation provided.",
-      };
-    } catch (error) {
-      if (error instanceof Error && error.name === "AbortError") {
-        console.error("[scoreRelevance] Request timed out.");
-      } else if (error instanceof Error) {
-        console.error(`[scoreRelevance] Error: ${error.message}`);
-      } else {
-        console.error("[scoreRelevance] An unknown error occurred:", error);
+      return { score, explanation };
+    } catch (error: unknown) {
+      // If this is a timeout error, provide a more specific message
+      if (
+        error && typeof error === "object" && "name" in error &&
+        error.name === "AbortError"
+      ) {
+        console.error(
+          `[scoreRelevance] Request timed out after ${timeoutMs}ms`,
+        );
+        // Return a default score for timeout cases to prevent workflow failure
+        return {
+          score: 50,
+          explanation:
+            "Scoring timed out - using default moderate relevance score",
+        };
       }
-      throw error; // Re-throw the error after logging
+      throw error;
+    } finally {
+      clearTimeout(timeoutId);
     }
   });
 }

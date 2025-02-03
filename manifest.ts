@@ -36,12 +36,10 @@ export default Manifest({
     "future.forem.com",
     "www.technologyreview.com",
     "www.kdnuggets.com",
-    "www.analyticsinsight.net",
     "www.artificialintelligence-news.com",
     "www.aimagazine.com",
     "aimagazine.com",
     "www.cio.com",
-    "www.nutanix.com",
     "techfundingnews.com",
     "www.techfundingnews.com",
     "www.prweb.com",
@@ -49,6 +47,8 @@ export default Manifest({
     "arxiv.org",
     "rss.arxiv.org",
   ],
+  datastores: [ArticleDatastore],
+  types: [ArticleType],
   botScopes: [
     "commands",
     "chat:write",
@@ -57,6 +57,4 @@ export default Manifest({
     "datastore:write",
     "reactions:read",
   ],
-  datastores: [ArticleDatastore],
-  types: [ArticleType],
 });

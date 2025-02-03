@@ -36,7 +36,6 @@ export default SlackFunction(
     //    This creates an array of Promises, one for each source.
     const fetchPromises = NEWS_SOURCES.map(async (source) => {
       const sourceStart = performance.now();
-      console.log(`[INFO] [${source.name}] Start fetching...`);
 
       try {
         // -- Timed fetch for the RSS feed
@@ -49,11 +48,6 @@ export default SlackFunction(
         }
 
         const fetchEnd = performance.now();
-        console.log(
-          `[INFO] [${source.name}] Fetched in ${
-            (fetchEnd - sourceStart).toFixed(2)
-          } ms. Parsing feed...`,
-        );
 
         // -- Get the XML text
         const xmlText = await response.text();
@@ -84,9 +78,6 @@ export default SlackFunction(
         // Return only the first 3 from each source
         const topArticles = articles.slice(0, 1);
 
-        console.log(
-          `[INFO] [${source.name}] Completed. Returning ${topArticles.length} articles.`,
-        );
         return topArticles;
       } catch (error) {
         console.error(`[ERROR] [${source.name}]`, error);
