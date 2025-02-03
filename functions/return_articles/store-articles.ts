@@ -71,6 +71,13 @@ export default SlackFunction(
             `Error updating article: ${article.title}. Contact the app maintainers with the following information - (Error detail: ${updateResp.error})`;
           console.log(updateErrorMsg);
 
+          // Log additional error details if available
+          if (updateResp.error) {
+            console.error(
+              `Detailed error: ${JSON.stringify(updateResp.error)}`,
+            );
+          }
+
           return { error: updateErrorMsg };
         }
 

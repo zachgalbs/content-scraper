@@ -82,7 +82,7 @@ export default SlackFunction(
         });
 
         // Return only the first 3 from each source
-        const topArticles = articles.slice(0, 3);
+        const topArticles = articles.slice(0, 1);
 
         console.log(
           `[INFO] [${source.name}] Completed. Returning ${topArticles.length} articles.`,
