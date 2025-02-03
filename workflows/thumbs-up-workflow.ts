@@ -1,10 +1,11 @@
-import { DefineWorkflow, Schema } from "deno-slack-sdk/mod.ts";
+import { DefineWorkflow, Schema, SlackFunction } from "deno-slack-sdk/mod.ts";
 import { AnalyzeReactionFunctionDefinition } from "../functions/reactions/analyze-reaction.ts";
 
 export const ReactionWorkflow = DefineWorkflow({
   callback_id: "reaction_workflow",
-  title: "Send a message on reaction",
-  description: "Send a message when a reaction is added in a specific channel",
+  title: "Update message on reaction",
+  description:
+    "Update a message with more details when a thumbs up reaction is added",
   input_parameters: {
     properties: {
       channel: {
@@ -13,19 +14,29 @@ export const ReactionWorkflow = DefineWorkflow({
       reaction: {
         type: Schema.types.string,
       },
+      message_ts: {
+        type: Schema.types.string,
+      },
     },
-    required: ["channel", "reaction"],
+    required: ["channel", "reaction", "message_ts"],
   },
 });
 
-const reactionMessageStep = ReactionWorkflow.addStep(
+const reactionStep = ReactionWorkflow.addStep(
   AnalyzeReactionFunctionDefinition,
   {
     reaction: ReactionWorkflow.inputs.reaction,
+    message_ts: ReactionWorkflow.inputs.message_ts,
+    channel: ReactionWorkflow.inputs.channel,
   },
 );
 
-ReactionWorkflow.addStep(Schema.slack.functions.SendMessage, {
+ReactionWorkflow.addStep("slack#/functions/update_message", {
   channel_id: ReactionWorkflow.inputs.channel,
-  message: reactionMessageStep.outputs.message,
+  message_ts: ReactionWorkflow.inputs.message_ts,
+  message: reactionStep.outputs.message,
+  message_context: {
+    channel_id: ReactionWorkflow.inputs.channel,
+    message_ts: ReactionWorkflow.inputs.message_ts,
+  },
 });

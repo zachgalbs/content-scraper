@@ -2,7 +2,7 @@ import { DefineFunction, Schema, SlackFunction } from "deno-slack-sdk/mod.ts";
 import { ArticleType } from "../other/article-type-definition.ts";
 import { ArticleDatastore } from "../../datastores/datastore-definition.ts";
 
-// 1. Define the function metadata, inputs, and outputs
+// 1. Define Function
 export const SendArticleMessagesFunction = DefineFunction({
   callback_id: "send_article_messages_function",
   title: "Send Article Messages",
@@ -12,38 +12,29 @@ export const SendArticleMessagesFunction = DefineFunction({
     properties: {
       articles: {
         type: Schema.types.array,
-        items: {
-          type: ArticleType,
-        },
+        items: { type: ArticleType },
       },
-      channel_id: {
-        type: Schema.types.string,
-      },
+      channel_id: { type: Schema.types.string },
     },
     required: ["articles", "channel_id"],
   },
   output_parameters: {
     properties: {
-      success: {
-        type: Schema.types.boolean,
-      },
-      message: {
-        type: Schema.types.string,
-      },
+      success: { type: Schema.types.boolean },
+      message: { type: Schema.types.string },
     },
     required: ["success"],
   },
 });
 
-// 2. Implement the function logic
+// 2. Implement Function Logic
 export default SlackFunction(
   SendArticleMessagesFunction,
   async ({ inputs, client }) => {
     const { articles, channel_id } = inputs;
 
-    // Check if the articles array is empty
-    if (!articles || articles.length === 0) {
-      // If there are no articles, still proceed without sending messages
+    // If no articles, just return a friendly note
+    if (!articles?.length) {
       return {
         outputs: {
           success: true,
@@ -52,83 +43,76 @@ export default SlackFunction(
       };
     }
 
-    // Send a greeting message
-    const greetingMessage = "Hey! Here are some articles I think you'll like:";
+    // 1) Send a greeting
     await client.chat.postMessage({
       channel: channel_id,
-      text: greetingMessage,
+      text: "Hey! Here are some articles I think you'll like:",
     });
 
+    // 2) Iterate over articles
     for (const article of articles) {
-      // Check if the article has been posted more than 3 times ever
+      const articleId = `${article.title}-${article.link}`;
+
+      // a) Check the times_posted from datastore
       const getResp = await client.apps.datastore.get<
         typeof ArticleDatastore.definition
       >({
         datastore: ArticleDatastore.name,
-        id: `${article.title}-${article.link}`,
+        id: articleId,
       });
 
+      // If found and times_posted > 3, skip sending
       if (getResp.ok && getResp.item) {
-        const { times_posted } = getResp.item.times_posted;
-
-        if (times_posted > 3) {
-          console.log(
-            `Skipping article: ${article.title} as it has been posted more than 3 times.`,
-          );
-          continue; // Skip sending this article
+        if ((getResp.item.times_posted ?? 0) > 3) {
+          console.log(`Skipping ${article.title}; already posted > 3 times.`);
+          continue;
         }
       }
 
-      const readablePubDate = new Date(article.pubDate).toLocaleString(
-        "en-US",
-        {
-          weekday: "long",
-          month: "short",
-          day: "numeric",
-        },
-      );
-      const messageText = `*Title:* ${article.title}\n` +
-        `*Link:* ${article.link}\n` +
-        `*Published on:* ${readablePubDate}\n` +
-        `*Summary:* ${article.summary}\n` +
-        `*Score:* ${article.score || "N/A"}\n` +
-        `*Explanation:* ${article.explanation || "N/A"}`;
-      // 🤖 Send the message via chat.postMessage API:
+      // b) Post the article message with a *bolded* title
+      const postMessage = [
+        `Title: *${article.title}*`, // Bold the title here
+        "",
+        `Summary: ${article.summary || "No summary available"}`,
+        "",
+        `Link: <${article.link}>`,
+      ].join("\n");
+
       const postResp = await client.chat.postMessage({
         channel: channel_id,
-        text: messageText,
+        text: postMessage,
       });
-
-      // ⚠️ If something goes wrong, bail early and report an error
       if (!postResp.ok) {
         return {
           outputs: {
             success: false,
             message:
-              `Failed to send message for article "${article.title}": ${postResp.error}`,
+              `Failed to send message for "${article.title}": ${postResp.error}`,
           },
         };
       }
 
-      // Increment the times_posted value in the datastore
+      // c) Update the times_posted in datastore
+      const existingTimesPosted = getResp.item?.times_posted ?? 0;
       const updateResp = await client.apps.datastore.put<
         typeof ArticleDatastore.definition
       >({
         datastore: ArticleDatastore.name,
         item: {
+          // Keep existing fields if we had an article item,
+          // otherwise create a new one with this ID.
           ...getResp.item,
-          times_posted: (getResp.item?.times_posted || 0) + 1,
+          id: articleId,
+          times_posted: existingTimesPosted + 1,
         },
       });
 
       if (!updateResp.ok) {
-        console.log(
-          `Failed to update times_posted for article: ${article.title}`,
-        );
+        console.log(`Failed to update times_posted for "${article.title}".`);
       }
     }
 
-    // ✅ If everything succeeded:
+    // 3) Return success
     return {
       outputs: {
         success: true,

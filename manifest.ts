@@ -50,11 +50,15 @@ export default Manifest({
   datastores: [ArticleDatastore],
   types: [ArticleType],
   botScopes: [
-    "commands",
     "chat:write",
     "chat:write.public",
+    "reactions:read",
+    "commands",
     "datastore:read",
     "datastore:write",
-    "reactions:read",
+    "channels:history",
+    "groups:history",
+    "mpim:history",
+    "im:history",
   ],
 });

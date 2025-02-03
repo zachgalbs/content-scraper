@@ -46,13 +46,8 @@ export default SlackFunction(
 
       for (const article of articles) {
         try {
-          // Generate a consistent ID format
-          const articleId = `${article.title}-${article.link}`.trim();
-          
-          if (!articleId) {
-            console.error(`Invalid article ID for article: ${JSON.stringify(article)}`);
-            continue;
-          }
+          // Generate a unique ID for the article based on its title and link
+          const articleId = `${article.title}-${article.link}`;
 
           // Check if the article already exists in the datastore
           const getResp = await client.apps.datastore.get<
@@ -66,16 +61,21 @@ export default SlackFunction(
             console.log(`Article already exists: ${article.title}`);
 
             // Validate the relevance score before updating
-            const relevanceScore = typeof article.score === 'number' ? article.score : null;
-            
+            const relevanceScore = typeof article.score === "number"
+              ? article.score
+              : null;
+
             // Create update payload with proper null checks
             const updatePayload = {
-              id: articleId, // Use our generated ID instead of getResp.item.id
+              id: articleId,
+              channel_id: article.channel_id || "",
               title: article.title.trim(),
               link: article.link.trim(),
               pubDate: article.pubDate || new Date().toISOString(),
-              times_posted: getResp.item.times_posted || 0,
+              times_posted: (getResp.item?.times_posted || 0) + 1,
               relevance_score: relevanceScore,
+              score: article.score || 0,
+              explanation: article.explanation || "",
             };
 
             const updateResp = await client.apps.datastore.update<
@@ -100,18 +100,24 @@ export default SlackFunction(
           }
 
           // Attempt to store each new article in the datastore
+          const createPayload = {
+            id: articleId,
+            channel_id: article.channel_id || "",
+            title: article.title.trim(),
+            summary: article.summary || "",
+            link: article.link.trim(),
+            pubDate: article.pubDate || new Date().toISOString(),
+            times_posted: 1,
+            relevance_score: article.score || 0,
+            score: article.score || 0,
+            explanation: article.explanation || "",
+          };
+
           const putResp = await client.apps.datastore.put<
             typeof ArticleDatastore.definition
           >({
             datastore: ArticleDatastore.name,
-            item: {
-              id: articleId,
-              title: article.title.trim(),
-              link: article.link.trim(),
-              pubDate: article.pubDate || new Date().toISOString(),
-              times_posted: 0,
-              relevance_score: article.score,
-            },
+            item: createPayload,
           });
 
           if (!putResp.ok) {
@@ -123,7 +129,10 @@ export default SlackFunction(
 
           console.log(`Successfully stored article: ${article.title}`);
         } catch (articleError) {
-          console.error(`Error processing article: ${article.title}`, articleError);
+          console.error(
+            `Error processing article: ${article.title}`,
+            articleError,
+          );
           // Continue with next article instead of failing the entire batch
           continue;
         }
@@ -137,7 +146,9 @@ export default SlackFunction(
       };
     } catch (error) {
       console.error("Error in StoreArticleFunction:", error);
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorMessage = error instanceof Error
+        ? error.message
+        : String(error);
       return {
         outputs: {
           success: false,

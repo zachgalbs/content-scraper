@@ -13,7 +13,7 @@ const ReactionTrigger: Trigger<typeof ReactionWorkflow.definition> = {
     filter: {
       version: 1,
       root: {
-        statement: "{{data.reaction}} == thumbsup",
+        statement: "{{data.reaction}} == eyes",
       },
     },
   },
@@ -23,6 +23,9 @@ const ReactionTrigger: Trigger<typeof ReactionWorkflow.definition> = {
     },
     reaction: {
       value: "{{data.reaction}}",
+    },
+    message_ts: {
+      value: "{{data.message_ts}}",
     },
   },
 };

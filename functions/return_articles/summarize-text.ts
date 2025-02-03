@@ -18,7 +18,7 @@ export default async function summarizeText(fullText: string): Promise<string> {
           {
             role: "user",
             content:
-              `Please summarize the following article text in a maximum of 30 words. Please focus on the relationship the article has to AI, and AI Native Development: ${fullText}`,
+              `Please summarize the following article text in a maximum of 15 words. Please focus on the relationship the article has to AI Native Development: ${fullText}`,
           },
         ],
         max_tokens: 50,
