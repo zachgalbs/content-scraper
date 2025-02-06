@@ -28,7 +28,19 @@
   },
   "lock": false,
   "tasks": {
-    "test": "deno fmt --check && deno lint && deno test --allow-read --allow-none"
+    "test": "deno fmt --check && deno lint && deno test --allow-read --allow-none --allow-env"
   },
-  "nodeModulesDir": "auto"
+  "nodeModulesDir": "auto",
+  "compilerOptions": {
+    "allowJs": true,
+    "lib": ["deno.window"],
+    "strict": true
+  },
+  "runtime": {
+    "permissions": {
+      "env": ["OPENAI_API_KEY"],
+      "read": true,
+      "net": true
+    }
+  }
 }

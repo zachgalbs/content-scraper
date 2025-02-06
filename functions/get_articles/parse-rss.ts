@@ -80,11 +80,11 @@ export async function ParseRSSFeedFunction(
 
         // Pass the allowed domain to fetchWithTimeout
         const articleHTML = await fetchWithTimeout(
-          link.trim(), 
+          link.trim(),
           8_000,
-          sourceRootDomain
+          sourceRootDomain,
         );
-        
+
         let articleText = "";
         if (articleHTML.ok) {
           const text = await articleHTML.text();
@@ -178,7 +178,7 @@ function extractFeedItems(parsedData: RssFeed | AtomFeed): FeedItem[] {
     return dateB - dateA; // descending
   });
 
-  return itemsArray.slice(0, 2); // Only process the 2 most recent items
+  return itemsArray.slice(0, 1); // Only process the 2 most recent items
 }
 
 /**
@@ -194,7 +194,9 @@ export async function fetchWithTimeout(
   if (allowedDomain) {
     const urlDomain = getRootDomain(url);
     if (urlDomain !== allowedDomain) {
-      throw new Error(`Domain ${urlDomain} does not match allowed domain ${allowedDomain}`);
+      throw new Error(
+        `Domain ${urlDomain} does not match allowed domain ${allowedDomain}`,
+      );
     }
   }
 
@@ -202,12 +204,13 @@ export async function fetchWithTimeout(
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
-    const response = await fetch(url, { 
+    const response = await fetch(url, {
       signal: controller.signal,
       headers: {
         // Prevent loading images and other resources
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,text/plain',
-      }
+        "Accept":
+          "text/html,application/xhtml+xml,application/xml;q=0.9,text/plain",
+      },
     });
     return response;
   } finally {

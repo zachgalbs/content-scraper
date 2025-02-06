@@ -46,7 +46,55 @@ export default SlackFunction(
         return { outputs: { message: "Could not find the original message." } };
       }
 
+      const message = msgResp.messages[0];
       const originalMessage = msgResp.messages[0].text ?? "";
+      const isFromBot = message.bot_id !== undefined;
+
+      // Handle -1 and +1 reactions for bot messages
+      if (isFromBot) {
+        if (inputs.reaction === "-1") {
+          // Delete the message
+          const deleteResp = await client.chat.delete({
+            channel: inputs.channel,
+            ts: inputs.message_ts,
+          });
+
+          if (!deleteResp.ok) {
+            console.error("Failed to delete message:", deleteResp.error);
+            return { outputs: { message: "Failed to delete the message." } };
+          }
+
+          return { outputs: { message: "Message deleted successfully." } };
+        }
+
+        if (inputs.reaction === "+1") {
+          // Post the message to the specified channel
+          const postResp = await client.chat.postMessage({
+            channel: "C08CBUM94RW", // Target channel ID
+            text: originalMessage,
+            blocks: message.blocks, // Preserve any rich formatting
+            attachments: message.attachments, // Preserve any attachments
+          });
+
+          if (!postResp.ok) {
+            console.error(
+              "Failed to post message to new channel:",
+              postResp.error,
+            );
+            return {
+              outputs: {
+                message: "Failed to share the message to the new channel.",
+              },
+            };
+          }
+
+          return {
+            outputs: {
+              message: "Message shared to the new channel successfully.",
+            },
+          };
+        }
+      }
 
       // 2) Parse fields from message
       const lines = originalMessage.split("\n").filter((l: string) =>
@@ -105,13 +153,10 @@ export default SlackFunction(
         );
 
         // 5a) Query the datastore for an item with matching title
-
         const queryResp = await client.apps.datastore.query<
           typeof ArticleDatastore.definition
         >({
           datastore: ArticleDatastore.name,
-          // Slack's expression syntax allows filters. We'll check if there's a 'title' property
-          // that equals our extracted title. (If your actual field name is different, change below.)
           expression: "#title = :val",
           expression_attributes: { "#title": "title" },
           expression_values: { ":val": title },
@@ -155,9 +200,6 @@ export default SlackFunction(
       const relevanceScore = article.relevance_score ?? "Unknown";
       const explanation = article.explanation ?? "Not available";
 
-      // Clean up link if it's wrapped in Slack formatting
-      const cleanLink = link.match(/<(.*?)>/)?.[1]?.split("|")[0] || link;
-
       // 7) Create updated message with additional information
       const updatedMessageParts = [
         originalMessage,
@@ -173,8 +215,6 @@ export default SlackFunction(
         ` *Relevance Score:* ${relevanceScore}`,
         "\n",
         ` *Explanation:* ${explanation || "No additional details available."}`,
-        "\n",
-        `*Read the full article:  *<${cleanLink}>`,
       ];
 
       // filter out any empty lines (like if summary is undefined)

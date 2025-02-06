@@ -22,7 +22,7 @@ export const ReactionWorkflow = DefineWorkflow({
   },
 });
 
-const reactionStep = ReactionWorkflow.addStep(
+ReactionWorkflow.addStep(
   AnalyzeReactionFunctionDefinition,
   {
     reaction: ReactionWorkflow.inputs.reaction,
@@ -31,12 +31,12 @@ const reactionStep = ReactionWorkflow.addStep(
   },
 );
 
-ReactionWorkflow.addStep("slack#/functions/update_message", {
-  channel_id: ReactionWorkflow.inputs.channel,
-  message_ts: ReactionWorkflow.inputs.message_ts,
-  message: reactionStep.outputs.message,
-  message_context: {
-    channel_id: ReactionWorkflow.inputs.channel,
-    message_ts: ReactionWorkflow.inputs.message_ts,
-  },
-});
+// ReactionWorkflow.addStep("slack#/functions/update_message", {
+//   channel_id: ReactionWorkflow.inputs.channel,
+//   message_ts: ReactionWorkflow.inputs.message_ts,
+//   message: reactionStep.outputs.message,
+//   message_context: {
+//     channel_id: ReactionWorkflow.inputs.channel,
+//     message_ts: ReactionWorkflow.inputs.message_ts,
+//   },
+// });
