@@ -1,23 +1,22 @@
-import { Trigger } from "deno-slack-sdk/types.ts";
-import { TriggerContextData, TriggerTypes } from "deno-slack-api/mod.ts";
+import { Trigger } from "deno-slack-api/types.ts";
 import { TopicWorkflow } from "../workflows/topic-workflow.ts";
 
-const topicTrigger: Trigger<typeof TopicWorkflow.definition> = {
-  type: TriggerTypes.Shortcut,
-  name: "Create Topic",
-  description: "Create a new topic for article categorization",
-  workflow: `#/workflows/${TopicWorkflow.definition.callback_id}`,
+const trigger: Trigger<typeof TopicWorkflow.definition> = {
+  type: "shortcut",
+  name: "Create New Topic",
+  description: "Create a new topic for article analysis",
+  workflow: "#/workflows/topic-workflow",
   inputs: {
+    created_by: {
+      value: "{{data.user_id}}",
+    },
+    interactivity: {
+      value: "{{data.interactivity}}",
+    },
     channel_id: {
-      value: TriggerContextData.Shortcut.channel_id,
-    },
-    topic_name: {
-      value: "{{data.text}}",
-    },
-    description: {
-      value: "{{data.description}}",
+      value: "{{data.channel_id}}",
     },
   },
 };
 
-export default topicTrigger;
+export default trigger;
