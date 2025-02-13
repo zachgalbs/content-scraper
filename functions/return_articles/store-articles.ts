@@ -76,6 +76,9 @@ export default SlackFunction(
               relevance_score: relevanceScore,
               score: article.score || 0,
               explanation: article.explanation || "",
+              ...(article.score > 50
+                ? { fullText: article.fullText || "" }
+                : {}),
             };
 
             const updateResp = await client.apps.datastore.update<
@@ -111,6 +114,7 @@ export default SlackFunction(
             relevance_score: article.score || 0,
             score: article.score || 0,
             explanation: article.explanation || "",
+            ...(article.score > 50 ? { fullText: article.fullText || "" } : {}),
           };
 
           const putResp = await client.apps.datastore.put<

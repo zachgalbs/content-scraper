@@ -114,7 +114,6 @@ export default SlackFunction(
 
       const title = extractField("Title");
       let link = extractField("Link");
-      const summary = extractField("Summary"); // optional use, if your message includes it
 
       if (!title || !link) {
         console.error("Message missing Title: or Link: in expected format.");

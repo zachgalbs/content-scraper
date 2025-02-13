@@ -1,6 +1,7 @@
 import { Manifest } from "deno-slack-sdk/mod.ts";
 import { ReminderWorkflow } from "./workflows/reminder-workflow.ts";
-import { ReactionWorkflow } from "./workflows/thumbs-up-workflow.ts";
+import { ReactionWorkflow } from "./workflows/reaction-workflow.ts";
+import { TopicWorkflow } from "./workflows/topic-workflow.ts";
 import { ArticleDatastore } from "./datastores/datastore-definition.ts";
 import { StoreArticleFunction } from "./functions/return_articles/store-articles.ts";
 import { SendArticleMessagesFunction } from "./functions/return_articles/send-article-messages.ts";
@@ -22,7 +23,7 @@ export default Manifest({
     FilterDatastoreArticlesFunction,
     ScoreRelevanceFunction,
   ],
-  workflows: [ReminderWorkflow, ReactionWorkflow],
+  workflows: [ReminderWorkflow, ReactionWorkflow, TopicWorkflow],
   outgoingDomains: [
     "api.openai.com",
     "feed.infoq.com",

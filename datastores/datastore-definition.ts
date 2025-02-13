@@ -11,6 +11,7 @@ export const ArticleDatastore = DefineDatastore({
     times_posted: { type: Schema.types.number },
     relevance_score: { type: Schema.types.number },
     explanation: { type: Schema.types.string },
+    fullText: { type: Schema.types.string },
   },
 });
 

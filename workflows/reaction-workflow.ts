@@ -1,4 +1,4 @@
-import { DefineWorkflow, Schema, SlackFunction } from "deno-slack-sdk/mod.ts";
+import { DefineWorkflow, Schema } from "deno-slack-sdk/mod.ts";
 import { AnalyzeReactionFunctionDefinition } from "../functions/reactions/analyze-reaction.ts";
 
 export const ReactionWorkflow = DefineWorkflow({
@@ -30,13 +30,3 @@ ReactionWorkflow.addStep(
     channel: ReactionWorkflow.inputs.channel,
   },
 );
-
-// ReactionWorkflow.addStep("slack#/functions/update_message", {
-//   channel_id: ReactionWorkflow.inputs.channel,
-//   message_ts: ReactionWorkflow.inputs.message_ts,
-//   message: reactionStep.outputs.message,
-//   message_context: {
-//     channel_id: ReactionWorkflow.inputs.channel,
-//     message_ts: ReactionWorkflow.inputs.message_ts,
-//   },
-// });
